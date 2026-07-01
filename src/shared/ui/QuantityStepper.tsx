@@ -4,13 +4,17 @@ import { Button } from '_shared/ui/Button';
 
 interface Props {
   value: number;
+  max?: number;
   onChange: (value: number) => void;
 }
 
-export function QuantityStepper({ value, onChange }: Props) {
+export function QuantityStepper({ value, max, onChange }: Props) {
+  const canDecrease = value > 0;
+  const canIncrease = max === undefined || value < max;
+
   return (
     <View style={styles.container}>
-      <Button style={styles.button} onPress={() => onChange(value - 1)}>
+      <Button style={styles.button} disabled={!canDecrease} onPress={() => onChange(value - 1)}>
         <Text style={styles.symbol}>−</Text>
       </Button>
 
@@ -18,7 +22,7 @@ export function QuantityStepper({ value, onChange }: Props) {
         <Text style={styles.value}>{value}</Text>
       </View>
 
-      <Button style={styles.button} onPress={() => onChange(value + 1)}>
+      <Button style={styles.button} disabled={!canIncrease} onPress={() => onChange(value + 1)}>
         <Text style={styles.symbol}>+</Text>
       </Button>
     </View>

@@ -126,8 +126,9 @@ function generateProductList(count: number): Array<Product> {
 
   return Array.from({ length: count }, (_, index) => {
     const template = templates[index % templates.length]!;
-    const priceOffset = Math.floor(random() * 21) - 10;
-    const price = Math.min(200, Math.max(1, template.basePrice + priceOffset));
+    const priceOffset = Math.floor(random() * 500) - 10;
+    const price = Math.min(1000, Math.max(1, template.basePrice + priceOffset));
+    const stock = Math.floor(random() * 11);
 
     return {
       id: String(index + 1),
@@ -135,6 +136,7 @@ function generateProductList(count: number): Array<Product> {
       category: template.category,
       price,
       image: buildProductImageUrl(template.imageSeed),
+      stock,
     };
   });
 }

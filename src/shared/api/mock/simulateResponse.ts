@@ -2,7 +2,7 @@
 type SimulateOptions<TError> = {
   delayMs?: number;
   failureRate?: number;
-  errors: TError[];
+  errors: Array<TError>;
 };
 
 export function simulateResponse<T, TError>(

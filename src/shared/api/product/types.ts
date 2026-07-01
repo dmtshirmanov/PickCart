@@ -5,6 +5,7 @@ export interface Product {
   category: string;
   price: number;
   image: string;
+  stock: number;
 }
 
 export interface FetchProductRequest {

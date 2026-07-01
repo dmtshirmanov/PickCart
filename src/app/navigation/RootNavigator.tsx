@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ErrorScreen } from '_screens/ErrorScreen';
 import { OrderConfirmationScreen } from '_screens/OrderConfirmationScreen';
-import { OrderOptionsScreen } from '_screens/OrderOptionsScreen';
 import { OrderSuccessScreen } from '_screens/OrderSuccessScreen';
 import { TabBarNavigation } from '_widgets/TabBarNavigation';
 import { NavigatorRoutes, ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
@@ -29,16 +28,6 @@ export function RootNavigator() {
         options={{
           headerShown: true,
           title: 'Подтверждение заказа',
-          headerBackTitle: '',
-          headerBackButtonDisplayMode: 'minimal',
-        }}
-      />
-      <Screen
-        name={ScreenRoutes.ORDER_OPTIONS}
-        component={OrderOptionsScreen}
-        options={{
-          headerShown: true,
-          title: 'Опции заказа',
           headerBackTitle: '',
           headerBackButtonDisplayMode: 'minimal',
         }}

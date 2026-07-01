@@ -3,16 +3,20 @@ import { CompositeNavigationProp, useNavigation } from '@react-navigation/native
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { match } from 'ts-pattern';
 import { analyticsStore } from '_entities/analytics/model';
 import { cartStore } from '_entities/cart/model';
 import { CartItem } from '_entities/cart/ui/CartItem';
+import { formatReservationCountdown } from '_entities/order/lib/checkoutFormatting';
 import { orderStore } from '_entities/order/model';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
 import { Button, ButtonSize, ButtonVariant } from '_shared/ui/Button';
+import { CheckoutIssuesModal } from '_shared/ui/CheckoutIssuesModal';
+import { ReservationBanner } from '_shared/ui/ReservationBanner';
 import { Separator } from '_shared/ui/Separator';
 import { formatItemsCount, formatPrice } from '_shared/utils/format';
 
@@ -26,27 +30,71 @@ export const CartScreen = observer(CartScreenComponent);
 
 function CartScreenComponent() {
   const navigation = useNavigation<CartScreenNavigationProp>();
-  const { items, totalItems, totalPrice, canCheckout, remainingToMinOrder } = cartStore;
-  const { minOrderPriceNotice } = orderStore;
+  const { items, totalItems, totalPrice, canCheckout, remainingToMinOrder, highlightedProductIds } =
+    cartStore;
+  const {
+    minOrderPriceNotice,
+    checkoutLoading,
+    hasReservation,
+    reservation,
+    checkoutIssues,
+    checkoutIssuesVisible,
+  } = orderStore;
+  const [now, setNow] = useState(Date.now());
   const isEmpty = items.length === 0;
 
-  const handleCheckout = useCallback(() => {
-    analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_TAPPED, orderStore.checkoutSnapshot);
-    navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
-  }, [navigation]);
+  const reservationCountdown = useMemo(() => {
+    if (!reservation) {
+      return '00:00';
+    }
 
-  const handleConfigureOptions = useCallback(() => {
-    analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
-    navigation.navigate(ScreenRoutes.ORDER_OPTIONS);
+    return formatReservationCountdown(reservation.expiresAt, now);
+  }, [now, reservation]);
+
+  const checkoutButtonTitle = match({ checkoutLoading, hasReservation })
+    .with({ checkoutLoading: true }, () => 'Бронируем...')
+    .with({ hasReservation: true }, () => 'Продолжить оформление')
+    .otherwise(() => 'Оформить заказ');
+
+  const handleCheckout = useCallback(async () => {
+    if (orderStore.hasReservation) {
+      navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
+      return;
+    }
+
+    analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_TAPPED, orderStore.checkoutSnapshot);
+
+    const result = await orderStore.checkout();
+
+    if (result?.success) {
+      navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
+    }
   }, [navigation]);
 
   const handleDismissMinOrderPriceNotice = useCallback(() => {
     orderStore.clearMinOrderPriceNotice();
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: (typeof items)[number] }) => {
-    return <CartItem product={item.product} quantity={item.quantity} />;
+  const handleCancelReservation = useCallback(() => {
+    void orderStore.releaseReservation();
   }, []);
+
+  const handleCloseCheckoutIssues = useCallback(() => {
+    orderStore.hideCheckoutIssues();
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof items)[number] }) => {
+      return (
+        <CartItem
+          product={item.product}
+          quantity={item.quantity}
+          highlighted={highlightedProductIds.has(item.product.id)}
+        />
+      );
+    },
+    [highlightedProductIds],
+  );
 
   const renderSeparator = useCallback(() => {
     return <Separator style={styles.separator} />;
@@ -54,19 +102,36 @@ function CartScreenComponent() {
 
   const keyExtractor = useCallback((item: (typeof items)[number]) => item.product.id, []);
 
+  useEffect(() => {
+    if (!hasReservation) {
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [hasReservation, reservation?.expiresAt]);
+
   return (
     <View style={styles.container}>
+      <CheckoutIssuesModal
+        visible={checkoutIssuesVisible}
+        issues={checkoutIssues}
+        onClose={handleCloseCheckoutIssues}
+      />
+
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Корзина</Text>
-          {!isEmpty && <Text style={styles.subtitle}>{formatItemsCount(totalItems)}</Text>}
-        </View>
-        {!isEmpty && (
-          <Pressable onPress={handleConfigureOptions} hitSlop={8}>
-            <Text style={styles.editButton}>Опции заказа</Text>
-          </Pressable>
-        )}
+        <Text style={styles.title}>Корзина</Text>
+        {!isEmpty && <Text style={styles.subtitle}>{formatItemsCount(totalItems)}</Text>}
       </View>
+
+      {hasReservation && reservation && (
+        <ReservationBanner countdown={reservationCountdown} onCancel={handleCancelReservation} />
+      )}
 
       {minOrderPriceNotice && (
         <View style={styles.noticeBlock}>
@@ -88,7 +153,7 @@ function CartScreenComponent() {
             style={styles.list}
             contentContainerStyle={styles.listContent}
             data={items}
-            extraData={totalItems}
+            extraData={`${totalItems}-${highlightedProductIds.size}`}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             showsVerticalScrollIndicator={false}
@@ -112,9 +177,9 @@ function CartScreenComponent() {
             <Button
               variant={ButtonVariant.Primary}
               size={ButtonSize.Compact}
-              title="Оформить заказ"
+              title={checkoutButtonTitle}
               onPress={handleCheckout}
-              disabled={!canCheckout}
+              disabled={hasReservation ? checkoutLoading : !canCheckout || checkoutLoading}
             />
           </View>
         </>
@@ -129,9 +194,6 @@ const styles = StyleSheet.create(theme => ({
     backgroundColor: theme.color.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     paddingHorizontal: theme.offset.content,
     paddingTop: theme.offset.content,
     paddingBottom: theme.offset.line,
@@ -145,11 +207,6 @@ const styles = StyleSheet.create(theme => ({
     fontSize: 14,
     color: theme.color.textSecondary,
     marginTop: theme.offset.tiny,
-  },
-  editButton: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: theme.color.primary,
   },
   noticeBlock: {
     flexDirection: 'row',

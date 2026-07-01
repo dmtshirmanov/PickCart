@@ -1,23 +1,20 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
-import { useCallback } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { analyticsStore } from '_entities/analytics/model';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Text, View } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
-import { ORDER_OPTION_ICONS } from '_entities/order/lib/orderOptionVisuals';
-import { orderStore, type OrderOption } from '_entities/order/model';
+import { formatReservationCountdown } from '_entities/order/lib/checkoutFormatting';
+import { orderStore } from '_entities/order/model';
 import { OrderItem } from '_entities/order/ui/OrderItem';
-import { AnalyticsEvent } from '_shared/api/analytics/types';
+import { OrderOptionsSection } from '_entities/order/ui/OrderOptionsSection';
 import { ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
-import { getResetToCartAction } from '_shared/lib/navigation';
 import { Button, ButtonVariant } from '_shared/ui/Button';
+import { ReservationBanner } from '_shared/ui/ReservationBanner';
 import { Separator } from '_shared/ui/Separator';
 import { formatPrice } from '_shared/utils/format';
-
-const optionIcons = ORDER_OPTION_ICONS;
 
 type OrderConfirmationNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,12 +26,49 @@ export const OrderConfirmationScreen = observer(OrderConfirmationScreenComponent
 
 function OrderConfirmationScreenComponent() {
   const navigation = useNavigation<OrderConfirmationNavigationProp>();
-  const { theme } = useUnistyles();
   const { items, totalItems, totalPrice } = cartStore;
-  const { activeOptions, normalizedOptions, loading } = orderStore;
+  const { normalizedOptions, loading, hasReservation, reservation } = orderStore;
+  const [now, setNow] = useState(Date.now());
+
+  const reservationCountdown = useMemo(() => {
+    if (!reservation) {
+      return '00:00';
+    }
+
+    return formatReservationCountdown(reservation.expiresAt, now);
+  }, [now, reservation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!orderStore.hasReservation) {
+        navigation.goBack();
+      }
+    }, [navigation]),
+  );
+
+  useEffect(() => {
+    if (!hasReservation) {
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      const currentNow = Date.now();
+      setNow(currentNow);
+
+      if (reservation && currentNow >= reservation.expiresAt) {
+        void orderStore.handleReservationExpired().then(() => {
+          navigation.goBack();
+        });
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [hasReservation, navigation, reservation]);
 
   const handleConfirmOrder = useCallback(async () => {
-    const result = await orderStore.createOrder({
+    const result = await orderStore.confirmOrder({
       products: items.map(({ product, quantity }) => ({
         ...product,
         quantity,
@@ -50,8 +84,8 @@ function OrderConfirmationScreenComponent() {
       return;
     }
 
-    if (result?.minOrderPriceChanged) {
-      navigation.dispatch(getResetToCartAction());
+    if (result?.expired) {
+      navigation.goBack();
       return;
     }
 
@@ -66,9 +100,10 @@ function OrderConfirmationScreenComponent() {
     }
   }, [items, navigation, normalizedOptions, totalPrice]);
 
-  const handleEditOptions = useCallback(() => {
-    analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
-    navigation.navigate(ScreenRoutes.ORDER_OPTIONS);
+  const handleCancelReservation = useCallback(() => {
+    void orderStore.releaseReservation().then(() => {
+      navigation.goBack();
+    });
   }, [navigation]);
 
   const keyExtractor = useCallback((item: (typeof items)[number]) => item.product.id, []);
@@ -77,23 +112,15 @@ function OrderConfirmationScreenComponent() {
     return <OrderItem product={item.product} quantity={item.quantity} />;
   }, []);
 
-  const renderOption = useCallback(
-    (option: OrderOption) => {
-      const Icon = optionIcons[option.key];
-
-      return (
-        <View key={option.key} style={styles.optionRow}>
-          <Icon color={theme.color.textSecondary} size={18} />
-          <Text style={styles.optionLabel}>{option.label}</Text>
-        </View>
-      );
-    },
-    [theme.color.textSecondary],
-  );
+  if (!hasReservation || !reservation) {
+    return;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.subtitle}>Проверьте детали заказа</Text>
+
+      <ReservationBanner countdown={reservationCountdown} onCancel={handleCancelReservation} />
 
       <View style={styles.productsSection}>
         <Text style={[styles.sectionTitle, styles.productsSectionTitle]}>
@@ -112,17 +139,7 @@ function OrderConfirmationScreenComponent() {
         />
       </View>
 
-      <View style={styles.optionsSection}>
-        <View style={styles.optionsHeader}>
-          <Text style={styles.sectionTitle}>Опции заказа</Text>
-          <Pressable onPress={handleEditOptions} hitSlop={8}>
-            <Text style={styles.editOptionsLink}>Изменить</Text>
-          </Pressable>
-        </View>
-        {activeOptions.length > 0 && (
-          <View style={styles.optionsCard}>{activeOptions.map(renderOption)}</View>
-        )}
-      </View>
+      <OrderOptionsSection />
 
       <View style={styles.footer}>
         <View style={styles.totalRow}>
@@ -173,40 +190,6 @@ const styles = StyleSheet.create(theme => ({
   },
   separator: {
     marginVertical: 0,
-  },
-  optionsSection: {
-    paddingHorizontal: theme.offset.content,
-    paddingTop: theme.offset.line,
-    paddingBottom: theme.offset.line,
-    borderTopWidth: 1,
-    borderTopColor: theme.color.divider,
-  },
-  optionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.offset.line,
-  },
-  editOptionsLink: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: theme.color.primary,
-  },
-  optionsCard: {
-    backgroundColor: theme.color.surface,
-    borderRadius: 12,
-    padding: theme.offset.content,
-    gap: theme.offset.line,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.offset.itemHorizontal,
-  },
-  optionLabel: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.color.textPrimary,
   },
   footer: {
     paddingHorizontal: theme.offset.content,

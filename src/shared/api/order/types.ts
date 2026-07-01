@@ -4,6 +4,7 @@ import { Product } from '../product/types';
 
 export enum OrderStatus {
   PENDING = 'pending',
+  PROCESSING = 'processing',
   CONFIRMED = 'confirmed',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
@@ -15,7 +16,7 @@ export type OrderProduct = Product & {
 
 export interface Order {
   id: string;
-  products: OrderProduct[];
+  products: Array<OrderProduct>;
   totalPrice: number;
   options: Record<OrderOptionKey, boolean>;
   status: OrderStatus;

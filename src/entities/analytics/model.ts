@@ -10,7 +10,7 @@ import {
 type QueuedAnalyticsEvent<T extends AnalyticsEvent = AnalyticsEvent> = AnalyticsEventRequest<T>;
 
 class AnalyticsStore {
-  private queue: QueuedAnalyticsEvent[] = [];
+  private queue: Array<QueuedAnalyticsEvent> = [];
   private isProcessing = false;
 
   constructor() {

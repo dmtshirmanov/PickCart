@@ -1,6 +1,7 @@
 /** @scopeDefault * */
 import { makeAutoObservable, runInAction } from 'mobx';
 import { orderStore } from '_entities/order/model';
+import { productStore } from '_entities/product/model';
 
 type InitTask = {
   name: string;
@@ -12,7 +13,15 @@ class AppInitStore {
   isLoading = false;
   error?: string = undefined;
 
-  private readonly tasks: InitTask[] = [
+  private readonly tasks: Array<InitTask> = [
+    {
+      name: 'orderStoreHydration',
+      run: () => orderStore.waitForHydration(),
+    },
+    {
+      name: 'productStoreHydration',
+      run: () => productStore.waitForHydration(),
+    },
     {
       name: 'minOrderPrice',
       run: () => orderStore.fetchMinOrderPrice(),

@@ -4,6 +4,8 @@ import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
+import { orderStore } from '_entities/order/model';
+import { productStore } from '_entities/product/model';
 import { Product } from '_shared/api/product/types';
 import { Button } from '_shared/ui/Button';
 import { Image } from '_shared/ui/Image';
@@ -13,24 +15,30 @@ import { formatPrice } from '_shared/utils/format';
 interface Props {
   product: Product;
   quantity: number;
+  highlighted?: boolean;
 }
 
-function CartItemComponent({ product, quantity }: Props) {
+function CartItemComponent({ product, quantity, highlighted = false }: Props) {
   const { theme } = useUnistyles();
+  const stock = productStore.getStock(product.id);
 
   const changeQuantity = useCallback(
     (value: number) => {
-      cartStore.changeQuantity(product, value);
+      void orderStore.runCartMutation(() => {
+        cartStore.changeQuantity(product, value);
+      });
     },
     [product],
   );
 
   const remove = useCallback(() => {
-    cartStore.remove(product);
+    void orderStore.runCartMutation(() => {
+      cartStore.remove(product);
+    });
   }, [product]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, highlighted && styles.containerHighlighted]}>
       <View style={styles.imageWrapper}>
         <Image uri={product.image} />
       </View>
@@ -52,7 +60,10 @@ function CartItemComponent({ product, quantity }: Props) {
           </Button>
         </View>
 
-        <QuantityStepper value={quantity} onChange={changeQuantity} />
+        <View style={styles.quantityBlock}>
+          <QuantityStepper value={quantity} max={stock} onChange={changeQuantity} />
+          <Text style={styles.limit}>Лимит: {stock}</Text>
+        </View>
       </View>
     </View>
   );
@@ -63,6 +74,12 @@ const styles = StyleSheet.create(theme => ({
     flexDirection: 'row',
     gap: theme.offset.line,
     paddingVertical: theme.offset.itemVertical,
+    paddingHorizontal: theme.offset.itemHorizontal,
+    marginHorizontal: -theme.offset.itemHorizontal,
+    borderRadius: 12,
+  },
+  containerHighlighted: {
+    backgroundColor: theme.color.warningLight,
   },
   imageWrapper: {
     width: 80,
@@ -102,6 +119,13 @@ const styles = StyleSheet.create(theme => ({
   },
   deleteButton: {
     padding: theme.offset.tiny,
+  },
+  quantityBlock: {
+    gap: theme.offset.tiny,
+  },
+  limit: {
+    fontSize: 12,
+    color: theme.color.textSecondary,
   },
 }));
 

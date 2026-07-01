@@ -7,7 +7,6 @@ export enum ScreenRoutes {
   PRODUCTS = '/products',
   CART = '/cart',
   ORDER_CONFIRMATION = '/order-confirmation',
-  ORDER_OPTIONS = '/order-options',
   ORDER_SUCCESS = '/order-success',
   ERROR = '/error',
 }

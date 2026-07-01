@@ -101,7 +101,6 @@ const styles = StyleSheet.create(theme => ({
     paddingHorizontal: theme.offset.content,
   },
   card: {
-    backgroundColor: theme.color.surface,
     borderRadius: 12,
     paddingVertical: theme.offset.block,
     paddingHorizontal: theme.offset.content,

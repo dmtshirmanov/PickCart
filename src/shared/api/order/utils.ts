@@ -1,6 +1,7 @@
 import { ORDER_ERROR_CODES, OrderApiError } from './errors';
 import { Order } from './types';
 
+/** @scope * */
 export function createOrderId() {
   return `order-${Date.now()}`;
 }

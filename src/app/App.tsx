@@ -57,7 +57,7 @@ function AppComponent() {
   }
 
   if (!appInitStore.isReady) {
-    return null;
+    return;
   }
 
   return (
