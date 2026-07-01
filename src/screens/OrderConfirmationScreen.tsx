@@ -5,11 +5,13 @@ import { observer } from "mobx-react-lite";
 import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { analyticsStore } from "_entities/analytics/model";
 import { cartStore } from "_entities/cart/model";
 import { ORDER_OPTION_ICONS } from "_entities/order/lib/orderOptionVisuals";
 import { orderStore, type OrderOption } from "_entities/order/model";
 import { OrderItem } from "_entities/order/ui/OrderItem";
 import { ScreenRoutes, type RootStackParamList } from "_shared/config/routing";
+import { AnalyticsEvent } from "_shared/api/analytics/types";
 import { Button } from "_shared/ui/Button";
 import { Separator } from "_shared/ui/Separator";
 import { formatPrice } from "_shared/utils/format";
@@ -31,15 +33,33 @@ function OrderConfirmationScreenComponent() {
     const { activeOptions, options, courierComment, loading } = orderStore;
 
     const handleConfirmOrder = useCallback(async () => {
-        orderStore.createOrder({
+        const result = await orderStore.createOrder({
             products: items.map(({ product }) => product),
             totalPrice,
             options,
             courierComment: courierComment || undefined,
         });
-    }, [courierComment, items, options, totalPrice]);
+
+        if (result?.order) {
+            navigation.replace(ScreenRoutes.ORDER_SUCCESS, {
+                orderId: result.order.id,
+            });
+            return;
+        }
+
+        if (result?.error) {
+            navigation.navigate(ScreenRoutes.ERROR, {
+                headerTitle: "Ошибка оформления заказа",
+                title: "Не удалось оформить заказ",
+                message: result.error.message,
+                secondaryButtonTitle: "Вернуться в корзину",
+                returnToCartOnSecondary: true,
+            });
+        }
+    }, [courierComment, items, navigation, options, totalPrice]);
 
     const handleEditOptions = useCallback(() => {
+        analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
         navigation.navigate(ScreenRoutes.ORDER_OPTIONS);
     }, [navigation]);
 

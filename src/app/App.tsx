@@ -4,8 +4,13 @@ import { StyleSheet } from "react-native-unistyles";
 import { Navigation } from "./navigation/Navigation";
 
 import "_shared/lib/unitstyles";
+import "_entities/analytics/model";
+import "_entities/cart/model";
 import "_entities/order/model";
 import "_entities/product/model";
+import { initGlobalReactions } from "./initGlobalReactions";
+
+initGlobalReactions();
 
 export function App() {
   return (

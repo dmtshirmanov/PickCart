@@ -1,7 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { analyticsStore } from "_entities/analytics/model";
+import { cartStore } from "_entities/cart/model";
 import { orderService } from "_shared/api/order/service";
+import { AnalyticsEvent, type CheckoutStatePayload } from "_shared/api/analytics/types";
 import { ORDER_ERROR_CODES, OrderApiError } from "_shared/api/order/errors";
 import { Order } from "_shared/api/order/types";
 import { makeAutoObservable, runInAction } from "mobx";
+import { makePersistable } from "mobx-persist-store";
 
 export const ORDER_OPTION_LABELS = {
     leaveAtTheDoor: "Оставить у двери",
@@ -29,13 +34,15 @@ class OrderStore {
         checkCompleteness: false,
     };
     courierComment = "";
-    deliveryAddress = undefined;
-    deliveryDate = undefined;
-    phone = undefined;
     minOrderPrice = 0;
 
     constructor() {
         makeAutoObservable(this);
+        makePersistable(this, {
+            name: "OrderStore",
+            properties: ["options", "courierComment"],
+            storage: AsyncStorage,
+        }).catch(() => {});
         this.fetchMinOrderPrice();
     }
 
@@ -48,22 +55,39 @@ class OrderStore {
     }
 
     async createOrder(data: Omit<Order, "id" | "status">) {
+        const checkoutSnapshot = this.checkoutSnapshot;
+
+        analyticsStore.reportEvent(AnalyticsEvent.ORDER_SUBMITTED, checkoutSnapshot);
+
         try {
             this.loading = true;
-            return await orderService.create(data);
+            const order = await orderService.create(data);
+            cartStore.clear();
+
+            analyticsStore.reportEvent(AnalyticsEvent.ORDER_CONFIRMED, {
+                orderId: order.id,
+                totalPrice: data.totalPrice,
+            });
+
+            return { order };
         } catch (error) {
             if (error instanceof OrderApiError) {
-                switch (error.code) {
-                    case ORDER_ERROR_CODES.MIN_ORDER_AMOUNT:
-                        await this.fetchMinOrderPrice();
-                        break;
-                    default:
-                        console.log(error);
-                        break;
+                analyticsStore.reportEvent(AnalyticsEvent.ORDER_FAILED, {
+                    errorCode: error.code,
+                    message: error.message,
+                    ...checkoutSnapshot,
+                });
+
+                if (error.code === ORDER_ERROR_CODES.MIN_ORDER_AMOUNT) {
+                    await this.fetchMinOrderPrice();
                 }
+
+                return { error };
             }
         } finally {
-            this.loading = false;
+            runInAction(() => {
+                this.loading = false;
+            });
         }
     }
 
@@ -89,6 +113,20 @@ class OrderStore {
 
     get activeOptions(): OrderOption[] {
         return this.optionsList.filter(option => option.enabled);
+    }
+
+    get checkoutSnapshot(): CheckoutStatePayload {
+        return {
+            products: cartStore.items.map(({ product, quantity }) => ({
+                id: product.id,
+                name: product.name,
+                quantity,
+                price: product.price,
+            })),
+            options: { ...this.options },
+            courierComment: this.courierComment || undefined,
+            totalPrice: cartStore.totalPrice,
+        };
     }
 }
 

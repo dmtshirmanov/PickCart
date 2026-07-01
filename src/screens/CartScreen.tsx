@@ -7,8 +7,11 @@ import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
+import { analyticsStore } from '_entities/analytics/model';
+import { orderStore } from '_entities/order/model';
 import { CartItem } from '_entities/cart/ui/CartItem';
 import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
+import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { Button } from '_shared/ui/Button';
 import { Separator } from '_shared/ui/Separator';
 import { formatItemsCount, formatPrice } from '_shared/utils/format';
@@ -27,10 +30,12 @@ function CartScreenComponent() {
   const isEmpty = items.length === 0;
 
   const handleCheckout = useCallback(() => {
+    analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_TAPPED, orderStore.checkoutSnapshot);
     navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
   }, [navigation]);
 
   const handleConfigureOptions = useCallback(() => {
+    analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
     navigation.navigate(ScreenRoutes.ORDER_OPTIONS);
   }, [navigation]);
 

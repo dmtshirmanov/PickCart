@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeAutoObservable } from 'mobx';
+import { makePersistable } from 'mobx-persist-store';
 import { orderStore } from '_entities/order/model';
 import { Product } from '_shared/api/product/types';
 
@@ -12,6 +14,11 @@ class CartStore {
 
   constructor() {
     makeAutoObservable(this);
+    makePersistable(this, {
+      name: 'CartStore',
+      properties: ['products'],
+      storage: AsyncStorage,
+    }).catch(() => {});
   }
 
   isInCart(product: Product) {
@@ -36,6 +43,10 @@ class CartStore {
     } else {
       this.products.set(product.id, { product, quantity });
     }
+  }
+
+  clear() {
+    this.products.clear();
   }
 
   get items() {

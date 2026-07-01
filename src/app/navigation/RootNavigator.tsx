@@ -1,6 +1,8 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ErrorScreen } from "_screens/ErrorScreen";
 import { OrderConfirmationScreen } from "_screens/OrderConfirmationScreen";
 import { OrderOptionsScreen } from "_screens/OrderOptionsScreen";
+import { OrderSuccessScreen } from "_screens/OrderSuccessScreen";
 import { NavigatorRoutes, ScreenRoutes, type RootStackParamList } from "_shared/config/routing";
 import { TabBarNavigation } from "_widgets/TabBarNavigation";
 
@@ -38,6 +40,28 @@ export function RootNavigator() {
                     headerBackTitle: "",
                     headerBackButtonDisplayMode: "minimal",
                 }}
+            />
+            <Screen
+                name={ScreenRoutes.ORDER_SUCCESS}
+                component={OrderSuccessScreen}
+                options={{
+                    headerShown: true,
+                    title: "Заказ оформлен",
+                    headerBackTitle: "",
+                    headerBackButtonDisplayMode: "minimal",
+                    gestureEnabled: false,
+                }}
+            />
+            <Screen
+                name={ScreenRoutes.ERROR}
+                component={ErrorScreen}
+                options={({ route }) => ({
+                    presentation: "modal",
+                    headerShown: true,
+                    title: route.params.headerTitle ?? route.params.title,
+                    headerBackTitle: "",
+                    headerBackButtonDisplayMode: "minimal",
+                })}
             />
         </Navigator>
     );

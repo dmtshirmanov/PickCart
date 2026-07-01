@@ -82,7 +82,7 @@ function generateProductList(count: number): Array<Product> {
     return Array.from({ length: count }, (_, index) => {
         const template = templates[index % templates.length]!;
         const priceOffset = Math.floor(random() * 21) - 10;
-        const price = Math.min(100, Math.max(1, template.basePrice + priceOffset));
+        const price = Math.min(200, Math.max(1, template.basePrice + priceOffset));
 
         return {
             id: String(index + 1),

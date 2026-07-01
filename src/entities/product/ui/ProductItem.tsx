@@ -39,14 +39,17 @@ function ProductItemComponent({ product }: Props) {
         <Text style={styles.name} numberOfLines={2}>
           {product.name}
         </Text>
-        <Text style={styles.price}>{formatPrice(product.price)}</Text>
-      </View>
 
-      {cartStore.isInCart(product) ? (
-        <QuantityStepper value={cartStore.getQuantity(product)} onChange={changeQuantity} />
-      ) : (
-        <Button variant="secondary" title="В корзину" onPress={add} />
-      )}
+        <View style={styles.footer}>
+          <Text style={styles.price}>{formatPrice(product.price)}</Text>
+
+          {cartStore.isInCart(product) ? (
+            <QuantityStepper value={cartStore.getQuantity(product)} onChange={changeQuantity} />
+          ) : (
+            <Button variant="secondary" title="В корзину" onPress={add} />
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -77,6 +80,12 @@ const styles = StyleSheet.create(theme => ({
     gap: theme.offset.tiny,
     justifyContent: 'center',
   },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: theme.offset.tiny,
+  },
   category: {
     fontSize: 12,
     color: theme.color.textSecondary,
@@ -91,6 +100,5 @@ const styles = StyleSheet.create(theme => ({
     fontSize: 16,
     fontWeight: '700',
     color: theme.color.textPrimary,
-    marginTop: theme.offset.tiny,
   },
 }));
