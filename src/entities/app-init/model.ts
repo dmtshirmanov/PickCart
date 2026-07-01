@@ -1,5 +1,6 @@
 /** @scopeDefault * */
 import { makeAutoObservable, runInAction } from 'mobx';
+import { cartStore } from '_entities/cart/model';
 import { orderStore } from '_entities/order/model';
 import { productStore } from '_entities/product/model';
 
@@ -14,6 +15,10 @@ class AppInitStore {
   error?: string = undefined;
 
   private readonly tasks: Array<InitTask> = [
+    {
+      name: 'cartStoreHydration',
+      run: () => cartStore.waitForHydration(),
+    },
     {
       name: 'orderStoreHydration',
       run: () => orderStore.waitForHydration(),
@@ -30,10 +35,6 @@ class AppInitStore {
 
   constructor() {
     makeAutoObservable(this);
-  }
-
-  registerTask(task: InitTask) {
-    this.tasks.push(task);
   }
 
   async init() {

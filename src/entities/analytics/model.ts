@@ -23,7 +23,7 @@ class AnalyticsStore {
   ) {
     const payload = attributes[0] as AnalyticsEventPayload[T];
 
-    void this.enqueue({
+    this.enqueue({
       event,
       payload,
       timestamp: Date.now(),
@@ -32,7 +32,7 @@ class AnalyticsStore {
 
   private enqueue(event: QueuedAnalyticsEvent) {
     this.queue.push(event);
-    void this.processQueue();
+    this.processQueue();
   }
 
   private async processQueue() {

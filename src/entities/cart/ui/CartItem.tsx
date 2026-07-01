@@ -24,7 +24,7 @@ function CartItemComponent({ product, quantity, highlighted = false }: Props) {
 
   const changeQuantity = useCallback(
     (value: number) => {
-      void orderStore.runCartMutation(() => {
+      orderStore.runCartMutation(() => {
         cartStore.changeQuantity(product, value);
       });
     },
@@ -32,7 +32,7 @@ function CartItemComponent({ product, quantity, highlighted = false }: Props) {
   );
 
   const remove = useCallback(() => {
-    void orderStore.runCartMutation(() => {
+    orderStore.runCartMutation(() => {
       cartStore.remove(product);
     });
   }, [product]);

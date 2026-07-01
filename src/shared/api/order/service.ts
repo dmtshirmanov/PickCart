@@ -1,8 +1,4 @@
 /** @scopeDefault * */
-import { simulateResponse } from '../mock/simulateResponse';
-import { Order, OrderStatus } from './types';
-import { createOrderErrors, createOrderId } from './utils';
-
 const MIN_ORDER_PRICE = 1000;
 const MAX_ORDER_PRICE = 2000;
 
@@ -11,19 +7,6 @@ function getRandomMinOrderPrice() {
 }
 
 class OrderService {
-  create(data: Omit<Order, 'id' | 'status'>) {
-    const minOrderPrice = getRandomMinOrderPrice();
-
-    return simulateResponse(
-      () => ({
-        ...data,
-        id: createOrderId(),
-        status: OrderStatus.CONFIRMED,
-      }),
-      { errors: createOrderErrors(data, minOrderPrice) },
-    );
-  }
-
   getMinOrderPrice() {
     return new Promise<number>(resolve => {
       setTimeout(() => {

@@ -23,7 +23,7 @@ export const App = observer(AppComponent);
 
 function AppComponent() {
   useEffect(() => {
-    void appInitStore.init();
+    appInitStore.init();
   }, []);
 
   if (appInitStore.isLoading) {
@@ -47,7 +47,7 @@ function AppComponent() {
               variant={ButtonVariant.Primary}
               title="Повторить"
               onPress={() => {
-                void appInitStore.init();
+                appInitStore.init();
               }}
             />
           </View>

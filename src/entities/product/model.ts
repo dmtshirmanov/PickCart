@@ -27,9 +27,11 @@ class ProductStore {
       storage: AsyncStorage,
     })
       .then(() => {})
-      .catch(() => {});
+      .catch(error => {
+        console.error('[ProductStore] persistence failed', error);
+      });
     onBecomeObserved(this, 'products', () => {
-      void this.get();
+      this.get();
     });
   }
 
@@ -43,11 +45,13 @@ class ProductStore {
 
   setStock(productId: string, stock: number) {
     this.stockById.set(productId, stock);
+  }
 
-    const catalogProduct = this.products.find(product => product.id === productId);
-
-    if (catalogProduct) {
-      catalogProduct.stock = stock;
+  private syncStockFromCatalog(products: Array<Product>) {
+    for (const product of products) {
+      if (!this.stockById.has(product.id)) {
+        this.setStock(product.id, product.stock);
+      }
     }
   }
 
@@ -59,9 +63,7 @@ class ProductStore {
       const products = await productService.get({ page: 0, limit: PAGE_SIZE });
       runInAction(() => {
         this.products.replace(products);
-        products.forEach(({ id, stock }) => {
-          this.setStock(id, stock);
-        });
+        this.syncStockFromCatalog(products);
         this.noMoreItems = products.length < PAGE_SIZE;
         this.catalogError = undefined;
       });
@@ -90,9 +92,7 @@ class ProductStore {
       });
       runInAction(() => {
         this.products.replace([...this.products, ...products]);
-        products.forEach(({ id, stock }) => {
-          this.setStock(id, stock);
-        });
+        this.syncStockFromCatalog(products);
         this.noMoreItems = products.length < PAGE_SIZE;
       });
     } catch {

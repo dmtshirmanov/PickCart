@@ -28,13 +28,13 @@ export function ErrorScreen({ route }: ErrorScreenProps) {
 
   const handlePrimaryPress = useCallback(() => {
     if (primaryAction === ErrorPrimaryAction.RETRY_CATALOG) {
-      void productStore.refresh();
+      productStore.refresh();
       navigation.goBack();
       return;
     }
 
     if (primaryAction === ErrorPrimaryAction.RETRY_APP_INIT) {
-      void appInitStore.init().then(() => {
+      appInitStore.init().then(() => {
         if (appInitStore.isReady) {
           navigation.goBack();
         }

@@ -1,12 +1,12 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
-import { formatReservationCountdown } from '_entities/order/lib/checkoutFormatting';
+import { useReservationCountdown } from '_entities/order/lib/useReservationCountdown';
 import { orderStore } from '_entities/order/model';
 import { OrderItem } from '_entities/order/ui/OrderItem';
 import { OrderOptionsSection } from '_entities/order/ui/OrderOptionsSection';
@@ -26,17 +26,14 @@ export const OrderConfirmationScreen = observer(OrderConfirmationScreenComponent
 
 function OrderConfirmationScreenComponent() {
   const navigation = useNavigation<OrderConfirmationNavigationProp>();
+  const isFocused = useIsFocused();
   const { items, totalItems, totalPrice } = cartStore;
   const { normalizedOptions, loading, hasReservation, reservation } = orderStore;
-  const [now, setNow] = useState(Date.now());
 
-  const reservationCountdown = useMemo(() => {
-    if (!reservation) {
-      return '00:00';
-    }
-
-    return formatReservationCountdown(reservation.expiresAt, now);
-  }, [now, reservation]);
+  const reservationCountdown = useReservationCountdown({
+    enabled: isFocused,
+    onExpired: () => navigation.goBack(),
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -45,27 +42,6 @@ function OrderConfirmationScreenComponent() {
       }
     }, [navigation]),
   );
-
-  useEffect(() => {
-    if (!hasReservation) {
-      return;
-    }
-
-    const timerId = setInterval(() => {
-      const currentNow = Date.now();
-      setNow(currentNow);
-
-      if (reservation && currentNow >= reservation.expiresAt) {
-        void orderStore.handleReservationExpired().then(() => {
-          navigation.goBack();
-        });
-      }
-    }, 1000);
-
-    return () => {
-      clearInterval(timerId);
-    };
-  }, [hasReservation, navigation, reservation]);
 
   const handleConfirmOrder = useCallback(async () => {
     const result = await orderStore.confirmOrder({
@@ -101,7 +77,7 @@ function OrderConfirmationScreenComponent() {
   }, [items, navigation, normalizedOptions, totalPrice]);
 
   const handleCancelReservation = useCallback(() => {
-    void orderStore.releaseReservation().then(() => {
+    orderStore.releaseReservation().then(() => {
       navigation.goBack();
     });
   }, [navigation]);

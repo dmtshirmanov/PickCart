@@ -26,7 +26,7 @@ function ProductItemComponent({ product }: Props) {
   const quantity = cartStore.getQuantity(product);
 
   const add = useCallback(() => {
-    void orderStore.runCartMutation(() => {
+    orderStore.runCartMutation(() => {
       if (stock > 0) {
         cartStore.add(product);
       }
@@ -35,7 +35,7 @@ function ProductItemComponent({ product }: Props) {
 
   const changeQuantity = useCallback(
     (value: number) => {
-      void orderStore.runCartMutation(() => {
+      orderStore.runCartMutation(() => {
         cartStore.changeQuantity(product, value);
       });
     },

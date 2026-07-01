@@ -1,16 +1,16 @@
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp, useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { match } from 'ts-pattern';
 import { analyticsStore } from '_entities/analytics/model';
 import { cartStore } from '_entities/cart/model';
 import { CartItem } from '_entities/cart/ui/CartItem';
-import { formatReservationCountdown } from '_entities/order/lib/checkoutFormatting';
+import { useReservationCountdown } from '_entities/order/lib/useReservationCountdown';
 import { orderStore } from '_entities/order/model';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
@@ -30,6 +30,7 @@ export const CartScreen = observer(CartScreenComponent);
 
 function CartScreenComponent() {
   const navigation = useNavigation<CartScreenNavigationProp>();
+  const isFocused = useIsFocused();
   const { items, totalItems, totalPrice, canCheckout, remainingToMinOrder, highlightedProductIds } =
     cartStore;
   const {
@@ -40,16 +41,8 @@ function CartScreenComponent() {
     checkoutIssues,
     checkoutIssuesVisible,
   } = orderStore;
-  const [now, setNow] = useState(Date.now());
+  const reservationCountdown = useReservationCountdown({ enabled: isFocused });
   const isEmpty = items.length === 0;
-
-  const reservationCountdown = useMemo(() => {
-    if (!reservation) {
-      return '00:00';
-    }
-
-    return formatReservationCountdown(reservation.expiresAt, now);
-  }, [now, reservation]);
 
   const checkoutButtonTitle = match({ checkoutLoading, hasReservation })
     .with({ checkoutLoading: true }, () => 'Бронируем...')
@@ -76,7 +69,7 @@ function CartScreenComponent() {
   }, []);
 
   const handleCancelReservation = useCallback(() => {
-    void orderStore.releaseReservation();
+    orderStore.releaseReservation();
   }, []);
 
   const handleCloseCheckoutIssues = useCallback(() => {
@@ -101,20 +94,6 @@ function CartScreenComponent() {
   }, []);
 
   const keyExtractor = useCallback((item: (typeof items)[number]) => item.product.id, []);
-
-  useEffect(() => {
-    if (!hasReservation) {
-      return;
-    }
-
-    const timerId = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => {
-      clearInterval(timerId);
-    };
-  }, [hasReservation, reservation?.expiresAt]);
 
   return (
     <View style={styles.container}>

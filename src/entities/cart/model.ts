@@ -7,26 +7,31 @@ import { productStore } from '_entities/product/model';
 import type { CheckoutCartItem, CheckoutIssue } from '_shared/api/checkout/types';
 import { Product } from '_shared/api/product/types';
 
-interface CartProduct {
-  product: Product;
-  quantity: number;
-}
-
 class CartStore {
-  products = new Map<string, CartProduct>();
+  cartLines: Record<string, { quantity: number; product: Product }> = {};
   highlightedProductIds = new Set<string>();
+
+  private readonly hydrationPromise: Promise<void>;
 
   constructor() {
     makeAutoObservable(this);
-    makePersistable(this, {
+    this.hydrationPromise = makePersistable(this, {
       name: 'CartStore',
-      properties: ['products'],
+      properties: ['cartLines'],
       storage: AsyncStorage,
-    }).catch(() => {});
+    })
+      .then(() => {})
+      .catch(error => {
+        console.error('[CartStore] persistence failed', error);
+      });
+  }
+
+  async waitForHydration() {
+    await this.hydrationPromise;
   }
 
   isInCart(product: Product) {
-    return this.products.has(product.id);
+    return product.id in this.cartLines;
   }
 
   isHighlighted(productId: string) {
@@ -34,21 +39,20 @@ class CartStore {
   }
 
   getQuantity(product: Product) {
-    return this.products.get(product.id)?.quantity ?? 0;
+    return this.cartLines[product.id]?.quantity ?? 0;
   }
 
   add(product: Product) {
-    if (product.stock <= 0) {
+    if (productStore.getStock(product.id) <= 0) {
       return;
     }
 
-    productStore.setStock(product.id, product.stock);
-    this.products.set(product.id, { product, quantity: 1 });
+    this.cartLines[product.id] = { quantity: 1, product };
     this.clearHighlights();
   }
 
   remove(product: Product) {
-    this.products.delete(product.id);
+    delete this.cartLines[product.id];
     this.clearHighlights();
   }
 
@@ -58,29 +62,29 @@ class CartStore {
       return;
     }
 
-    const stock = productStore.getStock(product.id);
-    const nextQuantity = Math.min(quantity, stock);
+    const nextQuantity = Math.min(quantity, productStore.getStock(product.id));
 
     if (nextQuantity <= 0) {
       this.remove(product);
       return;
     }
 
-    this.products.set(product.id, { product, quantity: nextQuantity });
+    this.cartLines[product.id] = { quantity: nextQuantity, product };
     this.clearHighlights();
   }
 
   applyCheckoutResult(items: Array<CheckoutCartItem>, issues: Array<CheckoutIssue>) {
-    this.products.clear();
+    const nextCartLines: Record<string, { quantity: number; product: Product }> = {};
 
     for (const { product, quantity } of items) {
       productStore.setStock(product.id, product.stock);
 
       if (quantity > 0) {
-        this.products.set(product.id, { product, quantity });
+        nextCartLines[product.id] = { quantity, product };
       }
     }
 
+    this.cartLines = nextCartLines;
     this.highlightedProductIds = new Set(
       issues.flatMap(issue => (issue.productId ? [issue.productId] : [])),
     );
@@ -91,22 +95,23 @@ class CartStore {
   }
 
   clear() {
-    this.products.clear();
+    this.cartLines = {};
     this.clearHighlights();
   }
 
-  get items() {
-    return Array.from(this.products.values());
+  get items(): Array<{ product: Product; quantity: number }> {
+    return Object.values(this.cartLines).map(({ product, quantity }) => ({
+      product: this.withStock(product),
+      quantity,
+    }));
   }
 
   get totalItems() {
-    return this.items.reduce((acc, { quantity }) => acc + quantity, 0);
+    return Object.values(this.cartLines).reduce((acc, { quantity }) => acc + quantity, 0);
   }
 
   get totalPrice() {
-    return this.items.reduce((acc, { product, quantity }) => {
-      return acc + product.price * quantity;
-    }, 0);
+    return this.items.reduce((acc, { product, quantity }) => acc + product.price * quantity, 0);
   }
 
   get canCheckout() {
@@ -115,6 +120,13 @@ class CartStore {
 
   get remainingToMinOrder() {
     return Math.max(0, orderStore.minOrderPrice - this.totalPrice);
+  }
+
+  private withStock(product: Product): Product {
+    const stock = productStore.getStock(product.id);
+    const fromCatalog = productStore.products.find(item => item.id === product.id);
+
+    return { ...(fromCatalog ?? product), stock };
   }
 }
 

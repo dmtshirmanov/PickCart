@@ -59,7 +59,9 @@ class OrderStore {
           this.restorePersistedReservation();
         });
       })
-      .catch(() => {});
+      .catch(error => {
+        console.error('[OrderStore] persistence failed', error);
+      });
   }
 
   async waitForHydration() {
@@ -175,7 +177,7 @@ class OrderStore {
         {
           text: 'Да',
           onPress: () => {
-            void this.releaseReservation().then(() => resolve(true));
+            this.releaseReservation().then(() => resolve(true));
           },
         },
       ]);
@@ -193,6 +195,10 @@ class OrderStore {
   }
 
   async handleReservationExpired() {
+    if (!this.reservation) {
+      return;
+    }
+
     await this.releaseReservation();
 
     runInAction(() => {
@@ -246,10 +252,6 @@ class OrderStore {
     }
   }
 
-  setOption(key: OrderOptionKey, enabled: boolean) {
-    this.options[key] = enabled;
-  }
-
   toggleOption(key: OrderOptionKey) {
     this.options[key] = !this.options[key];
   }
@@ -264,10 +266,6 @@ class OrderStore {
       label: ORDER_OPTION_LABELS[key],
       enabled: this.normalizedOptions[key],
     }));
-  }
-
-  get activeOptions(): Array<OrderOption> {
-    return this.optionsList.filter(option => option.enabled);
   }
 
   get normalizedOptions(): Record<OrderOptionKey, boolean> {
