@@ -1,8 +1,21 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
+    "lib": ["esnext"],
+    "baseUrl": "src",
+    "paths": {
+      "_shared/*": ["shared/*"],
+      "_entities/*": ["entities/*"],
+      "_features/*": ["features/*"],
+      "_widgets/*": ["widgets/*"],
+      "_screens/*": ["screens/*"],
+      "_screens": ["screens"]
+    },
+    "plugins": [{ "name": "eslint-plugin-export-scope" }],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "types": ["jest"]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods"]
+  "exclude": ["node_modules", "Pods"],
+  "include": ["**/*", "**/.scope.ts"]
 }
