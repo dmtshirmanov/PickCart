@@ -1,3 +1,4 @@
+/** @scopeDefault * */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeAutoObservable } from 'mobx';
 import { makePersistable } from 'mobx-persist-store';

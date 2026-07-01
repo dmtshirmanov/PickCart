@@ -8,23 +8,23 @@ const CHECKOUT_REACTION_DELAY_MS = 300;
 let skipInitialCheckoutEvent = true;
 
 function initCheckoutAnalyticsReaction() {
-    reaction(
-        () => orderStore.checkoutSnapshot,
-        snapshot => {
-            if (skipInitialCheckoutEvent) {
-                skipInitialCheckoutEvent = false;
-                return;
-            }
+  reaction(
+    () => orderStore.checkoutSnapshot,
+    snapshot => {
+      if (skipInitialCheckoutEvent) {
+        skipInitialCheckoutEvent = false;
+        return;
+      }
 
-            analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_STATE_CHANGED, snapshot);
-        },
-        {
-            delay: CHECKOUT_REACTION_DELAY_MS,
-        },
-    );
+      analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_STATE_CHANGED, snapshot);
+    },
+    {
+      delay: CHECKOUT_REACTION_DELAY_MS,
+    },
+  );
 }
 
 /** @scope .. */
 export function initGlobalReactions() {
-    initCheckoutAnalyticsReaction();
+  initCheckoutAnalyticsReaction();
 }

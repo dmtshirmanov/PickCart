@@ -1,79 +1,80 @@
+/** @scopeDefault * */
 import { makeAutoObservable, runInAction } from 'mobx';
 import { analyticsService } from '_shared/api/analytics/service';
 import {
-    type AnalyticsDeliveryRecord,
-    AnalyticsEvent,
-    type AnalyticsEventPayload,
-    type AnalyticsEventRequest,
+  AnalyticsEvent,
+  type AnalyticsDeliveryRecord,
+  type AnalyticsEventPayload,
+  type AnalyticsEventRequest,
 } from '_shared/api/analytics/types';
 
 type QueuedAnalyticsEvent<T extends AnalyticsEvent = AnalyticsEvent> = AnalyticsEventRequest<T>;
 
 class AnalyticsStore {
-    lastDelivery: AnalyticsDeliveryRecord | null = null;
+  lastDelivery?: AnalyticsDeliveryRecord;
 
-    private queue: QueuedAnalyticsEvent[] = [];
-    private isProcessing = false;
+  private queue: QueuedAnalyticsEvent[] = [];
+  private isProcessing = false;
 
-    constructor() {
-        makeAutoObservable(this);
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  reportEvent<T extends AnalyticsEvent>(
+    event: T,
+    ...attributes: AnalyticsEventPayload[T] extends never ? [never?] : [AnalyticsEventPayload[T]]
+  ) {
+    const payload = attributes[0] as AnalyticsEventPayload[T];
+
+    void this.enqueue({
+      event,
+      payload,
+      timestamp: Date.now(),
+    });
+  }
+
+  private enqueue(event: QueuedAnalyticsEvent) {
+    this.queue.push(event);
+    void this.processQueue();
+  }
+
+  private async processQueue() {
+    if (this.isProcessing) {
+      return;
     }
 
-    reportEvent<T extends AnalyticsEvent>(
-        event: T,
-        ...attributes: AnalyticsEventPayload[T] extends never ? [never?] : [AnalyticsEventPayload[T]]
-    ) {
-        const payload = attributes[0] as AnalyticsEventPayload[T];
+    this.isProcessing = true;
 
-        void this.enqueue({
-            event,
-            payload,
-            timestamp: Date.now(),
-        });
-    }
+    while (this.queue.length > 0) {
+      const event = this.queue.shift()!;
 
-    private enqueue(event: QueuedAnalyticsEvent) {
-        this.queue.push(event);
-        void this.processQueue();
-    }
-
-    private async processQueue() {
-        if (this.isProcessing) {
-            return;
-        }
-
-        this.isProcessing = true;
-
-        while (this.queue.length > 0) {
-            const event = this.queue.shift()!;
-
-            try {
-                await analyticsService.send(event);
-
-                runInAction(() => {
-                    this.lastDelivery = {
-                        event: event.event,
-                        success: true,
-                        sentAt: Date.now(),
-                    };
-                });
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Не удалось отправить событие';
-
-                runInAction(() => {
-                    this.lastDelivery = {
-                        event: event.event,
-                        success: false,
-                        error: message,
-                    };
-                });
-            }
-        }
+      try {
+        await analyticsService.send(event);
 
         runInAction(() => {
-            this.isProcessing = false;
+          this.lastDelivery = {
+            event: event.event,
+            success: true,
+            sentAt: Date.now(),
+          };
         });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Не удалось отправить событие';
+
+        runInAction(() => {
+          this.lastDelivery = {
+            event: event.event,
+            success: false,
+            error: message,
+          };
+        });
+      }
     }
+
+    runInAction(() => {
+      this.isProcessing = false;
+    });
+  }
 }
 
 /** @scope * */

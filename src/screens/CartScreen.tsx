@@ -1,18 +1,18 @@
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
 import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
-import { cartStore } from '_entities/cart/model';
 import { analyticsStore } from '_entities/analytics/model';
-import { orderStore } from '_entities/order/model';
+import { cartStore } from '_entities/cart/model';
 import { CartItem } from '_entities/cart/ui/CartItem';
-import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
+import { orderStore } from '_entities/order/model';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
-import { Button } from '_shared/ui/Button';
+import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
+import { Button, ButtonSize, ButtonVariant } from '_shared/ui/Button';
 import { Separator } from '_shared/ui/Separator';
 import { formatItemsCount, formatPrice } from '_shared/utils/format';
 
@@ -96,8 +96,8 @@ function CartScreenComponent() {
             </View>
 
             <Button
-              variant="primary"
-              size="compact"
+              variant={ButtonVariant.Primary}
+              size={ButtonSize.Compact}
               title="Оформить заказ"
               onPress={handleCheckout}
               disabled={!canCheckout}

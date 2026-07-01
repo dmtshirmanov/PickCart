@@ -4,7 +4,7 @@ import { Image, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
 import { Product } from '_shared/api/product/types';
-import { Button } from '_shared/ui/Button';
+import { Button, ButtonVariant } from '_shared/ui/Button';
 import { QuantityStepper } from '_shared/ui/QuantityStepper';
 import { formatPrice } from '_shared/utils/format';
 
@@ -12,6 +12,7 @@ interface Props {
   product: Product;
 }
 
+/** @scope * */
 export const ProductItem = observer(ProductItemComponent);
 
 function ProductItemComponent({ product }: Props) {
@@ -46,7 +47,7 @@ function ProductItemComponent({ product }: Props) {
           {cartStore.isInCart(product) ? (
             <QuantityStepper value={cartStore.getQuantity(product)} onChange={changeQuantity} />
           ) : (
-            <Button variant="secondary" title="В корзину" onPress={add} />
+            <Button variant={ButtonVariant.Secondary} title="В корзину" onPress={add} />
           )}
         </View>
       </View>
