@@ -1,7 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ShoppingCart, Store } from 'lucide-react-native';
+import { Activity, ShoppingCart, Store } from 'lucide-react-native';
 import { observer } from 'mobx-react-lite';
 import { useUnistyles } from 'react-native-unistyles';
+import { AnalyticsScreen } from '_screens/AnalyticsScreen';
 import { CartScreen } from '_screens/CartScreen';
 import { ProductsScreen } from '_screens/ProductsScreen';
 import { cartStore } from '_entities/cart/model';
@@ -37,6 +38,14 @@ function TabBarNavigationComponent() {
           tabBarBadge: cartStore.totalItems > 0 ? cartStore.totalItems : undefined,
           title: 'Корзина',
           tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name={ScreenRoutes.ANALYTICS}
+        component={AnalyticsScreen}
+        options={{
+          title: 'Аналитика',
+          tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

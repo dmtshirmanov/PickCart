@@ -6,6 +6,7 @@ export enum NavigatorRoutes {
 export enum ScreenRoutes {
   PRODUCTS = '/products',
   CART = '/cart',
+  ANALYTICS = '/analytics',
   ORDER_CONFIRMATION = '/order-confirmation',
   ORDER_SUCCESS = '/order-success',
   ERROR = '/error',
@@ -36,4 +37,7 @@ export type RootStackParamList = ScreensWithParams &
   Omit<Record<NavigatorRoutes | ScreenRoutes, undefined>, keyof ScreensWithParams> &
   Record<string, undefined>;
 
-export type TabBarParamList = Pick<RootStackParamList, ScreenRoutes.PRODUCTS | ScreenRoutes.CART>;
+export type TabBarParamList = Pick<
+  RootStackParamList,
+  ScreenRoutes.PRODUCTS | ScreenRoutes.CART | ScreenRoutes.ANALYTICS
+>;

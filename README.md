@@ -1,6 +1,6 @@
 # PickCart
 
-Тестовое React Native приложение — каталог товаров, корзина и оформление заказа с мок-бэкендом.
+Тестовое React Native приложение для работы с товарами и корзиной
 
 ## Скриншоты
 
@@ -8,9 +8,9 @@
 |:---:|:---:|:---:|
 | ![Каталог](docs/screenshots/catalog.png) | ![Корзина](docs/screenshots/cart.png) | ![Подтверждение](docs/screenshots/order-confirmation.png) |
 
-| Успех | Ошибка |
-|:---:|:---:|
-| ![Успех](docs/screenshots/order-success.png) | ![Ошибка](docs/screenshots/error.png) |
+| Успех | Ошибка бронирования | Аналитика |
+|:---:|:---:|:---:|
+| ![Успех](docs/screenshots/order-success.png) | ![Ошибка бронирования](docs/screenshots/checkout-error.png) | ![Аналитика](docs/screenshots/analytics.png) |
 
 ## Функциональность
 
@@ -18,17 +18,16 @@
 - 1000 товаров, подгрузка по 10 штук (`FlashList`)
 - Pull-to-refresh, бесконечный скролл
 - Добавление в корзину, изменение количества
-- Отображение остатка, состояние «Раскупили» при `stock = 0`
-- Лимит количества через единый реестр остатков `productStore.stockById`
+- Отображение остатка, состояние «Раскупили» при
 
 ### Корзина
-- Список позиций, итоговая сумма, лимит по stock
+- Список позиций, итоговая сумма, лимит
 - Бейдж на табе с количеством товаров
 - Минимальная сумма заказа с бэка (1000–2000 ₽, случайно)
 - Блокировка оформления, если корзина пуста или сумма ниже порога
 - Персистентность корзины (`AsyncStorage`)
 - Двухшаговое оформление: сначала бронирование (`reserve`), затем подтверждение
-- Модалка ошибок бронирования (`CheckoutIssuesModal`): out of stock, урезание количества, смена мин. суммы
+- Модалка ошибок бронирования: out of stock, урезание количества, смена мин. суммы
 - Подсветка проблемных позиций после неуспешной брони
 - Баннер активной брони с таймером и отменой
 - Защита от изменения корзины при активной брони (Alert → снятие брони)
@@ -51,14 +50,26 @@
 - UI и лимиты степпера читают stock только через `getStock(id)`
 
 ### Аналитика
-- Типизированные события (`reportEvent<T>`)
-- `CHECKOUT_STATE_CHANGED` через MobX `reaction` (debounce 300 ms)
-- UI-событие: `CHECKOUT_TAPPED`
-- События заказа: `ORDER_SUBMITTED` / `ORDER_CONFIRMED` / `ORDER_FAILED`
-- Очередь отправки, мок с `SERVICE_UNAVAILABLE`
+- Отдельный таб **«Аналитика»** — журнал событий с статусом отправки (успех / ошибка / в процессе)
+- По тапу на событие — модалка с полным JSON payload
+- Типизированные события (`reportEvent<T>`), очередь отправки, мок с `SERVICE_UNAVAILABLE` (~20%)
+
+| Событие | Когда |
+|---|---|
+| `CHECKOUT_STATE_CHANGED` | Изменение корзины или опций (MobX `reaction`, debounce 300 ms) |
+| `CHECKOUT_TAPPED` | Нажатие «Оформить заказ» |
+| `CHECKOUT_CONTINUED` | «Продолжить оформление» при активной брони |
+| `CHECKOUT_FAILED` | Ошибка бронирования (stock, мин. сумма) |
+| `RESERVATION_CANCELLED` | Отмена брони пользователем |
+| `ORDER_SUBMITTED` | Отправка заказа на confirm |
+| `ORDER_CONFIRMED` | Успешное оформление |
+| `ORDER_FAILED` | Ошибка на финальном confirm |
+| `ORDER_RESERVATION_EXPIRED` | Подтверждение без активной брони |
+
+Снимок корзины для аналитики строится только из `cartLines` и опций — без зависимости от пагинации каталога.
 
 ### Инициализация
-- `appInitStore` — гидрация `orderStore` и `productStore`, загрузка мин. суммы заказа
+- `appInitStore` — гидрация сторов, загрузка мин. суммы заказа
 - Экран загрузки до готовности, retry при ошибке init
 
 ## Стек
@@ -73,18 +84,19 @@
 | Списки | @shopify/flash-list |
 | Паттерны | ts-pattern |
 | Хранение | @react-native-async-storage/async-storage |
-| Архитектура | Feature-Sliced Design (app / screens / widgets / entities / shared) |
-| Качество | ESLint, Prettier, Husky pre-commit (`npm run validate`) |
+| Архитектура | Feature-Sliced Design (app / screens / widgets / features / entities / shared) |
+| Качество | ESLint, Prettier, Husky, Jest (117 тестов) |
 
 ## Структура
 
 ```
 src/
   app/           — App, навигация, global reactions
-  screens/       — экраны (каталог, корзина, подтверждение, успех, ошибки)
+  screens/       — каталог, корзина, подтверждение, успех, ошибки, аналитика
   widgets/       — TabBarNavigation
+  features/      — catalogProduct (карточка товара)
   entities/      — cart, order, product, analytics, app-init
-  shared/        — api (product, order, checkout, analytics), ui, config, lib
+  shared/        — api, ui, config, lib
 ```
 
 ## Запуск
@@ -94,5 +106,5 @@ npm install
 npm start          # Metro
 npm run ios        # или npm run android
 npm run validate   # typecheck + lint
+npm test           # unit-тесты
 ```
-

@@ -1,4 +1,4 @@
-import { reaction } from 'mobx';
+import { comparer, reaction } from 'mobx';
 import { analyticsStore } from '_entities/analytics/model';
 import { orderStore } from '_entities/order/model';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
@@ -20,6 +20,7 @@ function initCheckoutAnalyticsReaction() {
     },
     {
       delay: CHECKOUT_REACTION_DELAY_MS,
+      equals: comparer.structural,
     },
   );
 }

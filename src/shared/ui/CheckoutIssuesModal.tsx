@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, Text } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
-import { formatCheckoutIssueMessage } from '_entities/order/lib/checkoutFormatting';
+import { formatCheckoutIssueMessage } from '_shared/api/checkout/format';
 import type { CheckoutIssue } from '_shared/api/checkout/types';
 import { Button, ButtonVariant } from '_shared/ui/Button';
 

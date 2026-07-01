@@ -79,7 +79,7 @@ function OrderConfirmationScreenComponent() {
   }, [items, navigation, normalizedOptions, totalPrice]);
 
   const handleCancelReservation = useCallback(() => {
-    reservationStore.releaseReservation().then(() => {
+    reservationStore.cancelReservation().then(() => {
       navigation.goBack();
     });
   }, [navigation]);

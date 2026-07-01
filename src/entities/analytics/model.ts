@@ -2,14 +2,27 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { analyticsService } from '_shared/api/analytics/service';
 import {
+  AnalyticsDeliveryStatus,
   AnalyticsEvent,
   type AnalyticsEventPayload,
   type AnalyticsEventRequest,
+  type AnalyticsLogEntry,
 } from '_shared/api/analytics/types';
 
-type QueuedAnalyticsEvent<T extends AnalyticsEvent = AnalyticsEvent> = AnalyticsEventRequest<T>;
+type QueuedAnalyticsEvent<T extends AnalyticsEvent = AnalyticsEvent> = AnalyticsEventRequest<T> & {
+  id: string;
+};
+
+let entryIdSequence = 0;
+
+function createLogEntryId() {
+  entryIdSequence += 1;
+  return `analytics-${Date.now()}-${entryIdSequence}`;
+}
 
 class AnalyticsStore {
+  log: Array<AnalyticsLogEntry> = [];
+
   private queue: Array<QueuedAnalyticsEvent> = [];
   private isProcessing = false;
 
@@ -22,17 +35,50 @@ class AnalyticsStore {
     ...attributes: AnalyticsEventPayload[T] extends never ? [never?] : [AnalyticsEventPayload[T]]
   ) {
     const payload = attributes[0] as AnalyticsEventPayload[T];
+    const timestamp = Date.now();
+    const id = createLogEntryId();
+
+    runInAction(() => {
+      this.log.unshift({
+        id,
+        event,
+        payload,
+        timestamp,
+        status: AnalyticsDeliveryStatus.PENDING,
+      });
+    });
 
     this.enqueue({
+      id,
       event,
       payload,
-      timestamp: Date.now(),
+      timestamp,
     });
   }
 
   private enqueue(event: QueuedAnalyticsEvent) {
     this.queue.push(event);
     this.processQueue();
+  }
+
+  private updateLogEntry(id: string, status: AnalyticsDeliveryStatus, errorMessage?: string) {
+    const index = this.log.findIndex(item => item.id === id);
+
+    if (index === -1) {
+      return;
+    }
+
+    const entry = this.log[index]!;
+
+    this.log[index] = {
+      ...entry,
+      status,
+      errorMessage,
+    };
+  }
+
+  get logRevision() {
+    return this.log.map(entry => `${entry.id}:${entry.status}`).join('|');
   }
 
   private async processQueue() {
@@ -43,17 +89,19 @@ class AnalyticsStore {
     this.isProcessing = true;
 
     while (this.queue.length > 0) {
-      const event = this.queue.shift()!;
+      const { id, ...request } = this.queue.shift()!;
 
       try {
-        await analyticsService.send(event);
+        await analyticsService.send(request);
+        runInAction(() => {
+          this.updateLogEntry(id, AnalyticsDeliveryStatus.SUCCESS);
+        });
       } catch (error) {
-        // TODO(analytics-retry): повторная отправка должна жить в HTTP-слое, не в store.
-        // Кейс: analyticsService.send() отклоняется с SERVICE_UNAVAILABLE (сеть/5xx).
-        // Интерцептор делает до 3 попыток с backoff, store держит событие в очереди до финального отказа.
-        // После исчерпания попыток console.error + опционально offline-буфер (AsyncStorage).
         const message = error instanceof Error ? error.message : 'Не удалось отправить событие';
         console.error('[analytics] error', message);
+        runInAction(() => {
+          this.updateLogEntry(id, AnalyticsDeliveryStatus.FAILED, message);
+        });
       }
     }
 

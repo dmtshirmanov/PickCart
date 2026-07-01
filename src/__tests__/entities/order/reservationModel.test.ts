@@ -1,9 +1,18 @@
+import { analyticsStore } from '_entities/analytics/model';
+import { orderStore } from '_entities/order/model';
 import { reservationStore } from '_entities/order/reservationModel';
+import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { checkoutService } from '_shared/api/checkout/service';
 
 jest.mock('_shared/api/checkout/service', () => ({
   checkoutService: {
     releaseReservation: jest.fn(),
+  },
+}));
+
+jest.mock('_entities/analytics/model', () => ({
+  analyticsStore: {
+    reportEvent: jest.fn(),
   },
 }));
 
@@ -22,6 +31,7 @@ describe('ReservationStore', () => {
   beforeEach(() => {
     jest.mocked(checkoutService.releaseReservation).mockReset();
     jest.mocked(checkoutService.releaseReservation).mockResolvedValue(undefined);
+    jest.mocked(analyticsStore.reportEvent).mockReset();
     resetReservationStore();
   });
 
@@ -53,6 +63,28 @@ describe('ReservationStore', () => {
     await reservationStore.releaseReservation();
 
     expect(checkoutService.releaseReservation).not.toHaveBeenCalled();
+    expect(analyticsStore.reportEvent).not.toHaveBeenCalled();
+  });
+
+  test('cancelReservation reports analytics and releases reservation', async () => {
+    reservationStore.setReservation(createReservation());
+
+    await reservationStore.cancelReservation();
+
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(AnalyticsEvent.RESERVATION_CANCELLED, {
+      reservationId: 'reservation-1',
+      ...orderStore.checkoutSnapshot,
+    });
+    expect(checkoutService.releaseReservation).toHaveBeenCalledWith('reservation-1');
+    expect(reservationStore.reservation).toBeUndefined();
+  });
+
+  test('releaseReservation does not report analytics', async () => {
+    reservationStore.setReservation(createReservation());
+
+    await reservationStore.releaseReservation();
+
+    expect(analyticsStore.reportEvent).not.toHaveBeenCalled();
   });
 
   test('runCartMutation runs action when there is no reservation', async () => {

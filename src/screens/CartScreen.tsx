@@ -47,6 +47,15 @@ function CartScreenComponent() {
 
   const handleCheckout = useCallback(async () => {
     if (reservationStore.hasReservation) {
+      const { reservation } = reservationStore;
+
+      if (reservation) {
+        analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_CONTINUED, {
+          reservationId: reservation.id,
+          ...orderStore.checkoutSnapshot,
+        });
+      }
+
       navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
       return;
     }
@@ -65,7 +74,7 @@ function CartScreenComponent() {
   }, []);
 
   const handleCancelReservation = useCallback(() => {
-    reservationStore.releaseReservation();
+    reservationStore.cancelReservation();
   }, []);
 
   const handleCloseCheckoutIssues = useCallback(() => {

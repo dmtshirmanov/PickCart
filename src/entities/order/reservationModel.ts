@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { makePersistable } from 'mobx-persist-store';
 import { Alert } from 'react-native';
+import { analyticsStore } from '_entities/analytics/model';
+import { orderStore } from '_entities/order/model';
+import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { checkoutService } from '_shared/api/checkout/service';
 import type { CheckoutReservation } from '_shared/api/checkout/types';
 
@@ -58,6 +61,21 @@ class ReservationStore {
     this.reservation = undefined;
   }
 
+  async cancelReservation() {
+    if (!this.reservation) {
+      return;
+    }
+
+    const reservationId = this.reservation.id;
+
+    analyticsStore.reportEvent(AnalyticsEvent.RESERVATION_CANCELLED, {
+      reservationId,
+      ...orderStore.checkoutSnapshot,
+    });
+
+    await this.releaseReservation();
+  }
+
   async releaseReservation() {
     if (!this.reservation) {
       return;
@@ -82,7 +100,7 @@ class ReservationStore {
         {
           text: 'Да',
           onPress: () => {
-            this.releaseReservation().then(() => resolve(true));
+            this.cancelReservation().then(() => resolve(true));
           },
         },
       ]);

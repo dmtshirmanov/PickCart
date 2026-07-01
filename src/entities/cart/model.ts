@@ -123,10 +123,7 @@ class CartStore {
   }
 
   private withStock(product: Product): Product {
-    const stock = productStore.getStock(product.id);
-    const fromCatalog = productStore.products.find(item => item.id === product.id);
-
-    return { ...(fromCatalog ?? product), stock };
+    return { ...product, stock: productStore.getStock(product.id) };
   }
 }
 

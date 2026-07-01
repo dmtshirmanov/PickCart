@@ -7,19 +7,14 @@ import { cartStore } from '_entities/cart/model';
 import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
 import { AnalyticsEvent, type CheckoutStatePayload } from '_shared/api/analytics/types';
+import { formatCheckoutIssueMessage } from '_shared/api/checkout/format';
 import { checkoutService } from '_shared/api/checkout/service';
 import { CHECKOUT_ISSUE_CODES, type CheckoutIssue } from '_shared/api/checkout/types';
 import { OrderApiError } from '_shared/api/order/errors';
 import { orderService } from '_shared/api/order/service';
-import { Order } from '_shared/api/order/types';
+import { Order, ORDER_OPTION_LABELS, type OrderOptionKey } from '_shared/api/order/types';
 
-export const ORDER_OPTION_LABELS = {
-  leaveAtTheDoor: 'Оставить у двери',
-  callForDelivery: 'Позвонить по доставке',
-  checkCompleteness: 'Проверить комплектность',
-} as const;
-
-export type OrderOptionKey = keyof typeof ORDER_OPTION_LABELS;
+export { ORDER_OPTION_LABELS, type OrderOptionKey } from '_shared/api/order/types';
 
 export interface OrderOption {
   key: OrderOptionKey;
@@ -96,6 +91,7 @@ class OrderStore {
           reservationStore.clearReservation();
           this.checkoutIssues = result.issues;
           this.checkoutIssuesVisible = true;
+          this.reportCheckoutFailed(result.issues);
 
           if (
             result.issues.some(
@@ -140,6 +136,7 @@ class OrderStore {
 
   async confirmOrder(data: Omit<Order, 'id' | 'status'>) {
     if (!reservationStore.hasReservation || !reservationStore.reservation) {
+      analyticsStore.reportEvent(AnalyticsEvent.ORDER_RESERVATION_EXPIRED, this.checkoutSnapshot);
       await this.handleReservationExpired();
       return { expired: true as const };
     }
@@ -189,6 +186,16 @@ class OrderStore {
     this.minOrderPriceNotice = undefined;
   }
 
+  private reportCheckoutFailed(issues: Array<CheckoutIssue>) {
+    analyticsStore.reportEvent(AnalyticsEvent.CHECKOUT_FAILED, {
+      ...this.checkoutSnapshot,
+      issues: issues.map(issue => ({
+        code: issue.code,
+        message: formatCheckoutIssueMessage(issue),
+      })),
+    });
+  }
+
   get optionsList(): Array<OrderOption> {
     return (Object.keys(ORDER_OPTION_LABELS) as Array<OrderOptionKey>).map(key => ({
       key,
@@ -208,15 +215,20 @@ class OrderStore {
   }
 
   get checkoutSnapshot(): CheckoutStatePayload {
+    const cartLines = Object.values(cartStore.cartLines);
+
     return {
-      products: cartStore.items.map(({ product, quantity }) => ({
+      products: cartLines.map(({ product, quantity }) => ({
         id: product.id,
         name: product.name,
         quantity,
         price: product.price,
       })),
       options: this.normalizedOptions,
-      totalPrice: cartStore.totalPrice,
+      totalPrice: cartLines.reduce(
+        (sum, { product, quantity }) => sum + product.price * quantity,
+        0,
+      ),
     };
   }
 }

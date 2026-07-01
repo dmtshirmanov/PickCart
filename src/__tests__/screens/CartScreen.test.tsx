@@ -180,7 +180,10 @@ describe('CartScreen', () => {
 
     await user.press(screen.getByText('Продолжить оформление'));
 
-    expect(analyticsStore.reportEvent).not.toHaveBeenCalled();
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(AnalyticsEvent.CHECKOUT_CONTINUED, {
+      reservationId: 'reservation-1',
+      ...orderStore.checkoutSnapshot,
+    });
     expect(checkoutService.reserve).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(ScreenRoutes.ORDER_CONFIRMATION);
   });

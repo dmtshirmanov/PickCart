@@ -95,6 +95,21 @@ describe('ProductStore', () => {
     expect(productStore.noMoreItems).toBe(true);
   });
 
+  test('more does not overwrite stock already present in stockById', async () => {
+    const page0 = Array.from({ length: 10 }, (_, index) =>
+      createProduct({ id: `p${index}`, stock: index }),
+    );
+    const page1 = [createProduct({ id: 'p0', stock: 99 })];
+    jest.mocked(productService.get).mockResolvedValueOnce(page0).mockResolvedValueOnce(page1);
+
+    await productStore.get();
+    productStore.setStock('p0', 3);
+
+    await productStore.more();
+
+    expect(productStore.getStock('p0')).toBe(3);
+  });
+
   test('more skips loading when catalog is exhausted', async () => {
     jest.mocked(productService.get).mockResolvedValue([createProduct()]);
     await productStore.get();

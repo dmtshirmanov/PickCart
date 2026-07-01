@@ -3,8 +3,10 @@ import { cartStore } from '_entities/cart/model';
 import { orderStore } from '_entities/order/model';
 import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
+import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { checkoutService } from '_shared/api/checkout/service';
 import { CHECKOUT_ISSUE_CODES } from '_shared/api/checkout/types';
+import { ORDER_ERROR_CODES, OrderApiError } from '_shared/api/order/errors';
 import { OrderStatus } from '_shared/api/order/types';
 import { createOrderProduct, createProduct } from '../../fixtures/product';
 
@@ -105,6 +107,17 @@ describe('OrderStore', () => {
     expect(reservationStore.hasReservation).toBe(false);
     expect(orderStore.checkoutIssuesVisible).toBe(true);
     expect(orderStore.minOrderPriceNotice).toBe('Минимальная сумма заказа изменилась');
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(
+      AnalyticsEvent.CHECKOUT_FAILED,
+      expect.objectContaining({
+        issues: [
+          expect.objectContaining({
+            code: CHECKOUT_ISSUE_CODES.MIN_ORDER_AMOUNT_CHANGED,
+            message: expect.stringContaining('1'),
+          }),
+        ],
+      }),
+    );
   });
 
   test('checkout skips when reservation already exists', async () => {
@@ -162,5 +175,49 @@ describe('OrderStore', () => {
 
     expect(result).toEqual({ expired: true });
     expect(checkoutService.confirm).not.toHaveBeenCalled();
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(
+      AnalyticsEvent.ORDER_RESERVATION_EXPIRED,
+      orderStore.checkoutSnapshot,
+    );
+  });
+
+  test('confirmOrder reports ORDER_FAILED when confirm rejects', async () => {
+    const product = seedCart();
+    reservationStore.setReservation({
+      id: 'reservation-1',
+      expiresAt: Date.now() + 30 * 60 * 1000,
+    });
+    jest
+      .mocked(checkoutService.confirm)
+      .mockRejectedValue(
+        new OrderApiError(
+          ORDER_ERROR_CODES.SERVICE_UNAVAILABLE,
+          'Сервис временно недоступен. Попробуйте позже',
+        ),
+      );
+
+    const result = await orderStore.confirmOrder({
+      products: [{ ...product, quantity: 2 }],
+      totalPrice: 1000,
+      options: orderStore.normalizedOptions,
+    });
+
+    expect(result).toEqual({
+      error: expect.objectContaining({
+        code: ORDER_ERROR_CODES.SERVICE_UNAVAILABLE,
+        message: 'Сервис временно недоступен. Попробуйте позже',
+      }),
+    });
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(
+      AnalyticsEvent.ORDER_SUBMITTED,
+      orderStore.checkoutSnapshot,
+    );
+    expect(analyticsStore.reportEvent).toHaveBeenCalledWith(
+      AnalyticsEvent.ORDER_FAILED,
+      expect.objectContaining({
+        errorCode: ORDER_ERROR_CODES.SERVICE_UNAVAILABLE,
+        message: 'Сервис временно недоступен. Попробуйте позже',
+      }),
+    );
   });
 });

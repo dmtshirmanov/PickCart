@@ -47,8 +47,12 @@ class ProductStore {
     this.stockById.set(productId, stock);
   }
 
-  private syncStockFromCatalog(products: Array<Product>) {
+  private syncStockFromCatalog(products: Array<Product>, onlyNew = false) {
     for (const product of products) {
+      if (onlyNew && this.stockById.has(product.id)) {
+        continue;
+      }
+
       this.setStock(product.id, product.stock);
     }
   }
@@ -90,7 +94,7 @@ class ProductStore {
       });
       runInAction(() => {
         this.products.replace([...this.products, ...products]);
-        this.syncStockFromCatalog(products);
+        this.syncStockFromCatalog(products, true);
         this.noMoreItems = products.length < PAGE_SIZE;
       });
     } catch {

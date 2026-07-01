@@ -1,6 +1,8 @@
 /** @scopeDefault * */
-import { OrderOptionKey } from '_entities/order/model';
 import { Product } from '../product/types';
+import type { OrderOptionKey } from './options';
+
+export { ORDER_OPTION_LABELS, type OrderOptionKey } from './options';
 
 export enum OrderStatus {
   PENDING = 'pending',
