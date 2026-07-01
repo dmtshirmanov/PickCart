@@ -1,6 +1,7 @@
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { Product } from '_shared/api/product/types';
+import { Image } from '_shared/ui/Image';
 import { formatPrice } from '_shared/utils/format';
 
 interface Props {
@@ -13,7 +14,7 @@ export function OrderItem({ product, quantity }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.imageWrapper}>
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+        <Image uri={product.image} />
       </View>
 
       <View style={styles.info}>
@@ -40,12 +41,6 @@ const styles = StyleSheet.create(theme => ({
     borderRadius: 10,
     backgroundColor: theme.color.surface,
     overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: 44,
-    height: 44,
   },
   info: {
     flex: 1,

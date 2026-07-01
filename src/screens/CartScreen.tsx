@@ -27,6 +27,7 @@ export const CartScreen = observer(CartScreenComponent);
 function CartScreenComponent() {
   const navigation = useNavigation<CartScreenNavigationProp>();
   const { items, totalItems, totalPrice, canCheckout, remainingToMinOrder } = cartStore;
+  const { minOrderPriceNotice } = orderStore;
   const isEmpty = items.length === 0;
 
   const handleCheckout = useCallback(() => {
@@ -38,6 +39,10 @@ function CartScreenComponent() {
     analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
     navigation.navigate(ScreenRoutes.ORDER_OPTIONS);
   }, [navigation]);
+
+  const handleDismissMinOrderPriceNotice = useCallback(() => {
+    orderStore.clearMinOrderPriceNotice();
+  }, []);
 
   const renderItem = useCallback(({ item }: { item: (typeof items)[number] }) => {
     return <CartItem product={item.product} quantity={item.quantity} />;
@@ -62,6 +67,15 @@ function CartScreenComponent() {
           </Pressable>
         )}
       </View>
+
+      {minOrderPriceNotice && (
+        <View style={styles.noticeBlock}>
+          <Text style={styles.noticeText}>{minOrderPriceNotice}</Text>
+          <Pressable onPress={handleDismissMinOrderPriceNotice} hitSlop={8}>
+            <Text style={styles.noticeDismiss}>Закрыть</Text>
+          </Pressable>
+        </View>
+      )}
 
       {isEmpty ? (
         <View style={styles.emptyContainer}>
@@ -135,6 +149,28 @@ const styles = StyleSheet.create(theme => ({
   editButton: {
     fontSize: 15,
     fontWeight: '500',
+    color: theme.color.primary,
+  },
+  noticeBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.offset.itemHorizontal,
+    marginHorizontal: theme.offset.content,
+    marginBottom: theme.offset.line,
+    paddingHorizontal: theme.offset.content,
+    paddingVertical: theme.offset.itemHorizontal,
+    backgroundColor: theme.color.warningLight,
+    borderRadius: 12,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.color.textPrimary,
+  },
+  noticeDismiss: {
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.color.primary,
   },
   list: {

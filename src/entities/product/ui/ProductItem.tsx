@@ -1,10 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import { useCallback } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
 import { Product } from '_shared/api/product/types';
 import { Button, ButtonVariant } from '_shared/ui/Button';
+import { Image } from '_shared/ui/Image';
 import { QuantityStepper } from '_shared/ui/QuantityStepper';
 import { formatPrice } from '_shared/utils/format';
 
@@ -30,7 +31,7 @@ function ProductItemComponent({ product }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.imageWrapper}>
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+        <Image uri={product.image} />
       </View>
 
       <View style={styles.info}>
@@ -69,12 +70,6 @@ const styles = StyleSheet.create(theme => ({
     borderRadius: 12,
     backgroundColor: theme.color.surface,
     overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: 64,
-    height: 64,
   },
   info: {
     flex: 1,

@@ -8,6 +8,7 @@ import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginReactNative from 'eslint-plugin-react-native';
+import pluginUnistyles from 'eslint-plugin-react-native-unistyles';
 import { globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
@@ -34,6 +35,7 @@ export default tseslint.config(
     plugins: {
       'react-hooks': pluginReactHooks,
       'react-native': pluginReactNative,
+      'react-native-unistyles': pluginUnistyles,
     },
     languageOptions: {
       parserOptions: {
@@ -57,6 +59,7 @@ export default tseslint.config(
       'import-x/no-internal-modules': ['error', { allow: ['**/src/**'] }],
       'react-native/no-inline-styles': 'warn',
       'react-native/no-color-literals': 'warn',
+      'react-native-unistyles/no-unused-styles': 'warn',
     },
   },
   pluginExportScope.configs.flatConfigRecommended,

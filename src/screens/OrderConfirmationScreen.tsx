@@ -12,6 +12,7 @@ import { orderStore, type OrderOption } from '_entities/order/model';
 import { OrderItem } from '_entities/order/ui/OrderItem';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
+import { getResetToCartAction } from '_shared/lib/navigation';
 import { Button, ButtonVariant } from '_shared/ui/Button';
 import { Separator } from '_shared/ui/Separator';
 import { formatPrice } from '_shared/utils/format';
@@ -30,20 +31,27 @@ function OrderConfirmationScreenComponent() {
   const navigation = useNavigation<OrderConfirmationNavigationProp>();
   const { theme } = useUnistyles();
   const { items, totalItems, totalPrice } = cartStore;
-  const { activeOptions, options, courierComment, loading } = orderStore;
+  const { activeOptions, normalizedOptions, loading } = orderStore;
 
   const handleConfirmOrder = useCallback(async () => {
     const result = await orderStore.createOrder({
-      products: items.map(({ product }) => product),
+      products: items.map(({ product, quantity }) => ({
+        ...product,
+        quantity,
+      })),
       totalPrice,
-      options,
-      courierComment: courierComment || undefined,
+      options: normalizedOptions,
     });
 
     if (result?.order) {
       navigation.replace(ScreenRoutes.ORDER_SUCCESS, {
         orderId: result.order.id,
       });
+      return;
+    }
+
+    if (result?.minOrderPriceChanged) {
+      navigation.dispatch(getResetToCartAction());
       return;
     }
 
@@ -56,7 +64,7 @@ function OrderConfirmationScreenComponent() {
         returnToCartOnSecondary: true,
       });
     }
-  }, [courierComment, items, navigation, options, totalPrice]);
+  }, [items, navigation, normalizedOptions, totalPrice]);
 
   const handleEditOptions = useCallback(() => {
     analyticsStore.reportEvent(AnalyticsEvent.ORDER_OPTIONS_OPENED, orderStore.checkoutSnapshot);
@@ -137,7 +145,7 @@ const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
     backgroundColor: theme.color.background,
-    paddingTop: theme.offset.content,
+    paddingVertical: theme.offset.content,
   },
   subtitle: {
     fontSize: 14,

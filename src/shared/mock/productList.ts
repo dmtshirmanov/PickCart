@@ -2,44 +2,57 @@
 import { Product } from '_shared/api/product/types';
 
 const PRODUCT_COUNT = 1000;
+const PRODUCT_IMAGE_CDN = 'https://moqimg.ru';
 
-type ProductTemplate = Pick<Product, 'name' | 'category' | 'image'> & { basePrice: number };
+type ProductTemplate = Pick<Product, 'name' | 'category'> & {
+  basePrice: number;
+  imageSeed: string;
+};
+
+const IMAGE_SIZE_OFFSET_BY_SEED: Record<ProductTemplate['imageSeed'], number> = {
+  airpods: 0,
+  iphone: 8,
+  sony: 16,
+  watch: 24,
+  dyson: 32,
+};
+
+function buildProductImageUrl(imageSeed: string): string {
+  const size = 400 + (IMAGE_SIZE_OFFSET_BY_SEED[imageSeed] ?? 0);
+
+  return `${PRODUCT_IMAGE_CDN}/${size}x${size}.webp`;
+}
 
 const templates: Array<ProductTemplate> = [
   {
     name: 'AirPods Pro',
     category: 'Беспроводные наушники',
     basePrice: 89,
-    image:
-      'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83?wid=2000&hei=2000&fmt=jpeg&qlt=90&.v=1660803972361',
+    imageSeed: 'airpods',
   },
   {
     name: 'iPhone 15 128GB',
     category: 'Смартфон',
     basePrice: 99,
-    image:
-      'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-finish-select-202309-6-1inch-blue?wid=2000&hei=2000&fmt=jpeg&qlt=90&.v=1693009279823',
+    imageSeed: 'iphone',
   },
   {
     name: 'Sony WH-1000XM5',
     category: 'Наушники',
     basePrice: 79,
-    image:
-      'https://sony.scene7.com/is/image/sonyglobalsolutions/wh-1000xm5_Primary_image?$primaryshotPreset$&fmt=png-alpha&wid=2000',
+    imageSeed: 'sony',
   },
   {
     name: 'Apple Watch Series 9',
     category: 'Умные часы',
     basePrice: 95,
-    image:
-      'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/watch-s9-45mm-pink-sport-band-s9?wid=2000&hei=2000&fmt=jpeg&qlt=90&.v=1693304428668',
+    imageSeed: 'watch',
   },
   {
     name: 'Dyson V15 Detect',
     category: 'Пылесос',
     basePrice: 85,
-    image:
-      'https://dyson-h.assetsadobe2.com/is/image/content/dam/dyson/images/products/primary/447110-01.png',
+    imageSeed: 'dyson',
   },
 ];
 
@@ -121,7 +134,7 @@ function generateProductList(count: number): Array<Product> {
       name: generateProductName(template, index, random),
       category: template.category,
       price,
-      image: template.image,
+      image: buildProductImageUrl(template.imageSeed),
     };
   });
 }

@@ -1,19 +1,48 @@
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import { observer } from 'mobx-react-lite';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { productStore } from '_entities/product/model';
 import { ProductItem } from '_entities/product/ui/ProductItem';
 import { Product } from '_shared/api/product/types';
+import {
+  ErrorPrimaryAction,
+  RootStackParamList,
+  ScreenRoutes,
+  type TabBarParamList,
+} from '_shared/config/routing';
 import { Loader } from '_shared/ui/Loader';
 import { Separator } from '_shared/ui/Separator';
+
+type ProductsScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabBarParamList, ScreenRoutes.PRODUCTS>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 /** @scope * */
 export const ProductsScreen = observer(ProductsScreenComponent);
 
 function ProductsScreenComponent() {
-  const { products, loading, refreshing } = productStore;
+  const navigation = useNavigation<ProductsScreenNavigationProp>();
+  const { products, loading, refreshing, catalogError } = productStore;
+
+  useEffect(() => {
+    if (!catalogError) {
+      return;
+    }
+
+    navigation.navigate(ScreenRoutes.ERROR, {
+      headerTitle: 'Ошибка загрузки',
+      title: 'Не удалось загрузить каталог',
+      message: catalogError,
+      primaryButtonTitle: 'Повторить',
+      primaryAction: ErrorPrimaryAction.RETRY_CATALOG,
+    });
+  }, [catalogError, navigation]);
 
   const handleLoadMore = useCallback(() => {
     productStore.more();
@@ -81,6 +110,5 @@ const styles = StyleSheet.create(theme => ({
   },
   loader: {
     alignSelf: 'center',
-    justifyContent: 'center',
   },
 }));

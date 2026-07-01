@@ -60,6 +60,7 @@ const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
     backgroundColor: theme.color.background,
+    paddingVertical: theme.offset.content,
   },
   content: {
     flex: 1,

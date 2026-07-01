@@ -3,7 +3,6 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { analyticsService } from '_shared/api/analytics/service';
 import {
   AnalyticsEvent,
-  type AnalyticsDeliveryRecord,
   type AnalyticsEventPayload,
   type AnalyticsEventRequest,
 } from '_shared/api/analytics/types';
@@ -11,8 +10,6 @@ import {
 type QueuedAnalyticsEvent<T extends AnalyticsEvent = AnalyticsEvent> = AnalyticsEventRequest<T>;
 
 class AnalyticsStore {
-  lastDelivery?: AnalyticsDeliveryRecord;
-
   private queue: QueuedAnalyticsEvent[] = [];
   private isProcessing = false;
 
@@ -50,24 +47,13 @@ class AnalyticsStore {
 
       try {
         await analyticsService.send(event);
-
-        runInAction(() => {
-          this.lastDelivery = {
-            event: event.event,
-            success: true,
-            sentAt: Date.now(),
-          };
-        });
       } catch (error) {
+        // TODO(analytics-retry): повторная отправка должна жить в HTTP-слое, не в store.
+        // Кейс: analyticsService.send() отклоняется с SERVICE_UNAVAILABLE (сеть/5xx).
+        // Интерцептор делает до 3 попыток с backoff, store держит событие в очереди до финального отказа.
+        // После исчерпания попыток console.error + опционально offline-буфер (AsyncStorage).
         const message = error instanceof Error ? error.message : 'Не удалось отправить событие';
-
-        runInAction(() => {
-          this.lastDelivery = {
-            event: event.event,
-            success: false,
-            error: message,
-          };
-        });
+        console.error('[analytics] error', message);
       }
     }
 

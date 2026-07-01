@@ -13,7 +13,6 @@ export const ORDER_OPTION_LABELS = {
   leaveAtTheDoor: 'Оставить у двери',
   callForDelivery: 'Позвонить по доставке',
   deliveryAtConvenientTime: 'Доставка в удобное время',
-  doNotCall: 'Не звонить',
   checkCompleteness: 'Проверить комплектность',
 } as const;
 
@@ -27,24 +26,22 @@ export interface OrderOption {
 
 class OrderStore {
   loading = false;
+  minOrderPriceNotice?: string = undefined;
   options: Record<OrderOptionKey, boolean> = {
     leaveAtTheDoor: false,
     callForDelivery: false,
     deliveryAtConvenientTime: false,
-    doNotCall: false,
     checkCompleteness: false,
   };
-  courierComment = '';
   minOrderPrice = 0;
 
   constructor() {
     makeAutoObservable(this);
     makePersistable(this, {
       name: 'OrderStore',
-      properties: ['options', 'courierComment'],
+      properties: ['options'],
       storage: AsyncStorage,
     }).catch(() => {});
-    this.fetchMinOrderPrice();
   }
 
   async fetchMinOrderPrice() {
@@ -81,6 +78,12 @@ class OrderStore {
 
         if (error.code === ORDER_ERROR_CODES.MIN_ORDER_AMOUNT) {
           await this.fetchMinOrderPrice();
+
+          runInAction(() => {
+            this.minOrderPriceNotice = error.message;
+          });
+
+          return { minOrderPriceChanged: true };
         }
 
         return { error };
@@ -100,20 +103,30 @@ class OrderStore {
     this.options[key] = !this.options[key];
   }
 
-  setCourierComment(comment: string) {
-    this.courierComment = comment;
+  clearMinOrderPriceNotice() {
+    this.minOrderPriceNotice = undefined;
   }
 
   get optionsList(): OrderOption[] {
     return (Object.keys(ORDER_OPTION_LABELS) as OrderOptionKey[]).map(key => ({
       key,
       label: ORDER_OPTION_LABELS[key],
-      enabled: this.options[key],
+      enabled: this.normalizedOptions[key],
     }));
   }
 
   get activeOptions(): OrderOption[] {
     return this.optionsList.filter(option => option.enabled);
+  }
+
+  get normalizedOptions(): Record<OrderOptionKey, boolean> {
+    return (Object.keys(ORDER_OPTION_LABELS) as OrderOptionKey[]).reduce(
+      (acc, key) => {
+        acc[key] = this.options[key] ?? false;
+        return acc;
+      },
+      {} as Record<OrderOptionKey, boolean>,
+    );
   }
 
   get checkoutSnapshot(): CheckoutStatePayload {
@@ -124,8 +137,7 @@ class OrderStore {
         quantity,
         price: product.price,
       })),
-      options: { ...this.options },
-      courierComment: this.courierComment || undefined,
+      options: this.normalizedOptions,
       totalPrice: cartStore.totalPrice,
     };
   }

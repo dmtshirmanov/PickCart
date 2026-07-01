@@ -1,5 +1,5 @@
 /** @scopeDefault * */
-import { ClipboardCheck, Clock, DoorOpen, Phone, PhoneOff } from 'lucide-react-native';
+import { ClipboardCheck, Clock, DoorOpen, Phone } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { useUnistyles } from 'react-native-unistyles';
 import { lightTheme } from '_shared/config/themes';
@@ -7,7 +7,7 @@ import { ORDER_OPTION_LABELS, orderStore, type OrderOption, type OrderOptionKey 
 
 type ThemeColor = typeof lightTheme.color;
 
-type OrderOptionTone = 'info' | 'primary' | 'warning' | 'error';
+type OrderOptionTone = 'info' | 'primary' | 'error';
 
 export type OrderOptionVisualConfig = {
   Icon: typeof DoorOpen;
@@ -19,7 +19,6 @@ export const ORDER_OPTION_ICONS = {
   leaveAtTheDoor: DoorOpen,
   callForDelivery: Phone,
   deliveryAtConvenientTime: Clock,
-  doNotCall: PhoneOff,
   checkCompleteness: ClipboardCheck,
 } as const satisfies Record<OrderOptionKey, typeof DoorOpen>;
 
@@ -27,7 +26,6 @@ const ORDER_OPTION_TONES = {
   leaveAtTheDoor: 'info',
   callForDelivery: 'primary',
   deliveryAtConvenientTime: 'primary',
-  doNotCall: 'warning',
   checkCompleteness: 'error',
 } as const satisfies Record<OrderOptionKey, OrderOptionTone>;
 
@@ -42,10 +40,6 @@ const TONE_COLORS: Record<
   primary: color => ({
     iconColor: color.primary,
     backgroundColor: color.primaryLight,
-  }),
-  warning: color => ({
-    iconColor: color.warning,
-    backgroundColor: color.warningLight,
   }),
   error: color => ({
     iconColor: color.error,

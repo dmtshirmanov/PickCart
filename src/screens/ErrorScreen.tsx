@@ -1,10 +1,13 @@
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AlarmClock } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { NavigatorRoutes, ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
+import { appInitStore } from '_entities/app-init/model';
+import { productStore } from '_entities/product/model';
+import { ErrorPrimaryAction, ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
+import { getResetToCartAction } from '_shared/lib/navigation';
 import { Button, ButtonVariant } from '_shared/ui/Button';
 
 type ErrorScreenProps = NativeStackScreenProps<RootStackParamList, ScreenRoutes.ERROR>;
@@ -18,30 +21,33 @@ export function ErrorScreen({ route }: ErrorScreenProps) {
     message,
     errorCode,
     primaryButtonTitle = 'Повторить',
+    primaryAction,
     secondaryButtonTitle,
     returnToCartOnSecondary = false,
   } = route.params;
 
   const handlePrimaryPress = useCallback(() => {
+    if (primaryAction === ErrorPrimaryAction.RETRY_CATALOG) {
+      void productStore.refresh();
+      navigation.goBack();
+      return;
+    }
+
+    if (primaryAction === ErrorPrimaryAction.RETRY_APP_INIT) {
+      void appInitStore.init().then(() => {
+        if (appInitStore.isReady) {
+          navigation.goBack();
+        }
+      });
+      return;
+    }
+
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, primaryAction]);
 
   const handleSecondaryPress = useCallback(() => {
     if (returnToCartOnSecondary) {
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [
-            {
-              name: NavigatorRoutes.MAIN,
-              state: {
-                routes: [{ name: ScreenRoutes.CART }],
-                index: 0,
-              },
-            },
-          ],
-        }),
-      );
+      navigation.dispatch(getResetToCartAction());
       return;
     }
 

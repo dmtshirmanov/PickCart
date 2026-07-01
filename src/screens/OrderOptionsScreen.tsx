@@ -2,13 +2,12 @@ import { useNavigation } from '@react-navigation/native';
 import { Check } from 'lucide-react-native';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useOrderOptionsWithVisuals } from '_entities/order/lib/orderOptionVisuals';
 import { orderStore, type OrderOptionKey } from '_entities/order/model';
 import { Button, ButtonVariant } from '_shared/ui/Button';
 import { Separator } from '_shared/ui/Separator';
-import { TextInput } from '_shared/ui/TextInput';
 
 /** @scope * */
 export const OrderOptionsScreen = observer(OrderOptionsScreenComponent);
@@ -17,8 +16,7 @@ function OrderOptionsScreenComponent() {
   const navigation = useNavigation();
   const { theme } = useUnistyles();
   const options = useOrderOptionsWithVisuals();
-  const [draftOptions, setDraftOptions] = useState(() => ({ ...orderStore.options }));
-  const [draftComment, setDraftComment] = useState(orderStore.courierComment);
+  const [draftOptions, setDraftOptions] = useState(() => ({ ...orderStore.normalizedOptions }));
 
   const toggleDraftOption = useCallback((key: OrderOptionKey) => {
     setDraftOptions(prev => ({
@@ -31,22 +29,17 @@ function OrderOptionsScreenComponent() {
     (Object.keys(draftOptions) as OrderOptionKey[]).forEach(key => {
       orderStore.setOption(key, draftOptions[key]);
     });
-    orderStore.setCourierComment(draftComment);
     navigation.goBack();
-  }, [draftComment, draftOptions, navigation]);
+  }, [draftOptions, navigation]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.container}>
       <Text style={styles.subtitle}>Выберите опции для заказа</Text>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.optionsCard}>
           {options.map((option, index) => {
@@ -69,22 +62,12 @@ function OrderOptionsScreenComponent() {
             );
           })}
         </View>
-
-        <View style={styles.commentSection}>
-          <Text style={styles.commentLabel}>Комментарий для курьера</Text>
-          <TextInput
-            value={draftComment}
-            onChangeText={setDraftComment}
-            placeholder="Например, уточнить место доставки"
-            multiline
-          />
-        </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <Button variant={ButtonVariant.Primary} title="Сохранить опции" onPress={handleSave} />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -92,6 +75,7 @@ const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
     backgroundColor: theme.color.background,
+    paddingVertical: theme.offset.content,
   },
   subtitle: {
     marginTop: theme.offset.content,
@@ -106,7 +90,6 @@ const styles = StyleSheet.create(theme => ({
   scrollContent: {
     paddingHorizontal: theme.offset.content,
     paddingBottom: theme.offset.line,
-    gap: theme.offset.block,
   },
   optionsCard: {
     backgroundColor: theme.color.background,
@@ -146,14 +129,6 @@ const styles = StyleSheet.create(theme => ({
   checkboxChecked: {
     backgroundColor: theme.color.primary,
     borderColor: theme.color.primary,
-  },
-  commentSection: {
-    gap: theme.offset.itemHorizontal,
-  },
-  commentLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.color.textPrimary,
   },
   footer: {
     paddingHorizontal: theme.offset.content,

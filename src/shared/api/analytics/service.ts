@@ -4,7 +4,7 @@ import { ANALYTICS_ERROR_CODES, AnalyticsApiError } from './errors';
 import type { AnalyticsEvent, AnalyticsEventRequest } from './types';
 
 const SEND_DELAY_MS = 400;
-const FAILURE_RATE = 0.4;
+const FAILURE_RATE = 0.2;
 
 const SERVICE_UNAVAILABLE_ERROR = new AnalyticsApiError(
   ANALYTICS_ERROR_CODES.SERVICE_UNAVAILABLE,

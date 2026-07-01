@@ -4,12 +4,15 @@ import { productService } from '_shared/api/product/service';
 import { Product } from '_shared/api/product/types';
 
 const PAGE_SIZE = 10;
+const CATALOG_LOAD_ERROR_MESSAGE =
+  'Не удалось загрузить каталог. Проверьте подключение и попробуйте снова';
 
 class ProductStore {
   refreshing = false;
   loading = false;
   products = observable.array<Product>([]);
   noMoreItems = false;
+  catalogError?: string = undefined;
 
   constructor() {
     makeAutoObservable(this);
@@ -20,15 +23,19 @@ class ProductStore {
 
   async get() {
     this.loading = true;
+    this.catalogError = undefined;
 
     try {
       const products = await productService.get({ page: 0, limit: PAGE_SIZE });
       runInAction(() => {
         this.products.replace(products);
         this.noMoreItems = products.length < PAGE_SIZE;
+        this.catalogError = undefined;
       });
     } catch {
-      // TODO: handle error
+      runInAction(() => {
+        this.catalogError = CATALOG_LOAD_ERROR_MESSAGE;
+      });
     } finally {
       runInAction(() => {
         this.loading = false;
@@ -53,7 +60,9 @@ class ProductStore {
         this.noMoreItems = products.length < PAGE_SIZE;
       });
     } catch {
-      // TODO: handle error
+      runInAction(() => {
+        this.catalogError = CATALOG_LOAD_ERROR_MESSAGE;
+      });
     } finally {
       runInAction(() => {
         this.loading = false;
@@ -67,8 +76,6 @@ class ProductStore {
 
     try {
       await this.get();
-    } catch {
-      // TODO: handle error
     } finally {
       runInAction(() => {
         this.refreshing = false;

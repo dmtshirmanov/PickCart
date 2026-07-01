@@ -12,6 +12,11 @@ export enum ScreenRoutes {
   ERROR = '/error',
 }
 
+export enum ErrorPrimaryAction {
+  RETRY_CATALOG = 'retry_catalog',
+  RETRY_APP_INIT = 'retry_app_init',
+}
+
 export interface ScreensWithParams {
   [ScreenRoutes.ORDER_SUCCESS]: {
     orderId: string;
@@ -22,6 +27,7 @@ export interface ScreensWithParams {
     headerTitle?: string;
     errorCode?: string;
     primaryButtonTitle?: string;
+    primaryAction?: ErrorPrimaryAction;
     secondaryButtonTitle?: string;
     returnToCartOnSecondary?: boolean;
   };

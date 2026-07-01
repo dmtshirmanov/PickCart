@@ -15,7 +15,7 @@ export function createOrderErrors(data: Omit<Order, 'id' | 'status'>, minOrderPr
 
   if (data.totalPrice < minOrderPrice) {
     errors.push(
-      new OrderApiError(ORDER_ERROR_CODES.MIN_ORDER_AMOUNT, 'Недостаточная сумма для заказа'),
+      new OrderApiError(ORDER_ERROR_CODES.MIN_ORDER_AMOUNT, 'Минимальная цена заказа изменилась'),
     );
   }
 

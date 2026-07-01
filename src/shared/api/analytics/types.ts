@@ -20,7 +20,6 @@ export interface AnalyticsProductItem {
 export interface CheckoutStatePayload {
   products: AnalyticsProductItem[];
   options: Record<OrderOptionKey, boolean>;
-  courierComment?: string;
   totalPrice: number;
 }
 
@@ -43,11 +42,4 @@ export interface AnalyticsEventRequest<T extends AnalyticsEvent = AnalyticsEvent
   event: T;
   payload: AnalyticsEventPayload[T];
   timestamp: number;
-}
-
-export interface AnalyticsDeliveryRecord {
-  event: AnalyticsEvent;
-  success: boolean;
-  error?: string;
-  sentAt?: number;
 }

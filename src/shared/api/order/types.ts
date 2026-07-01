@@ -9,11 +9,14 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
 }
 
+export type OrderProduct = Product & {
+  quantity: number;
+};
+
 export interface Order {
   id: string;
-  products: Product[];
+  products: OrderProduct[];
   totalPrice: number;
   options: Record<OrderOptionKey, boolean>;
-  courierComment?: string;
   status: OrderStatus;
 }
