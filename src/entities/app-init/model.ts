@@ -2,6 +2,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { cartStore } from '_entities/cart/model';
 import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
 
 type InitTask = {
@@ -22,6 +23,10 @@ class AppInitStore {
     {
       name: 'orderStoreHydration',
       run: () => orderStore.waitForHydration(),
+    },
+    {
+      name: 'reservationStoreHydration',
+      run: () => reservationStore.waitForHydration(),
     },
     {
       name: 'productStoreHydration',

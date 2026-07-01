@@ -1,9 +1,10 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "baseUrl": "src",
     "paths": {
+      "__tests__/*": ["__tests__/*"],
       "_shared/*": ["shared/*"],
       "_entities/*": ["entities/*"],
       "_features/*": ["features/*"],

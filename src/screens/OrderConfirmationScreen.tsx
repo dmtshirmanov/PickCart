@@ -8,6 +8,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
 import { useReservationCountdown } from '_entities/order/lib/useReservationCountdown';
 import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { OrderItem } from '_entities/order/ui/OrderItem';
 import { OrderOptionsSection } from '_entities/order/ui/OrderOptionsSection';
 import { ScreenRoutes, type RootStackParamList } from '_shared/config/routing';
@@ -28,7 +29,8 @@ function OrderConfirmationScreenComponent() {
   const navigation = useNavigation<OrderConfirmationNavigationProp>();
   const isFocused = useIsFocused();
   const { items, totalItems, totalPrice } = cartStore;
-  const { normalizedOptions, loading, hasReservation, reservation } = orderStore;
+  const { normalizedOptions, loading } = orderStore;
+  const { hasReservation, reservation } = reservationStore;
 
   const reservationCountdown = useReservationCountdown({
     enabled: isFocused,
@@ -37,7 +39,7 @@ function OrderConfirmationScreenComponent() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!orderStore.hasReservation) {
+      if (!reservationStore.hasReservation) {
         navigation.goBack();
       }
     }, [navigation]),
@@ -77,7 +79,7 @@ function OrderConfirmationScreenComponent() {
   }, [items, navigation, normalizedOptions, totalPrice]);
 
   const handleCancelReservation = useCallback(() => {
-    orderStore.releaseReservation().then(() => {
+    reservationStore.releaseReservation().then(() => {
       navigation.goBack();
     });
   }, [navigation]);

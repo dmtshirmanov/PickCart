@@ -76,9 +76,25 @@ export default tseslint.config(
   },
   {
     files: ['src/__tests__/**'],
+    languageOptions: {
+      globals: {
+        jest: 'readonly',
+        describe: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        require: 'readonly',
+      },
+    },
     rules: {
       'export-scope/no-imports-outside-export-scope': 'off',
       'import-x/no-named-as-default-member': 'off',
+      'import-x/no-internal-modules': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
     },
   },
 );

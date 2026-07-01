@@ -4,9 +4,10 @@ import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { match } from 'ts-pattern';
 import { cartStore } from '_entities/cart/model';
-import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
 import { Product } from '_shared/api/product/types';
+import productFallback from '_shared/assets/product-fallback.png';
 import { Button, ButtonVariant } from '_shared/ui/Button';
 import { Image } from '_shared/ui/Image';
 import { QuantityStepper } from '_shared/ui/QuantityStepper';
@@ -26,7 +27,7 @@ function ProductItemComponent({ product }: Props) {
   const quantity = cartStore.getQuantity(product);
 
   const add = useCallback(() => {
-    orderStore.runCartMutation(() => {
+    reservationStore.runCartMutation(() => {
       if (stock > 0) {
         cartStore.add(product);
       }
@@ -35,7 +36,7 @@ function ProductItemComponent({ product }: Props) {
 
   const changeQuantity = useCallback(
     (value: number) => {
-      orderStore.runCartMutation(() => {
+      reservationStore.runCartMutation(() => {
         cartStore.changeQuantity(product, value);
       });
     },
@@ -45,7 +46,7 @@ function ProductItemComponent({ product }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.imageWrapper}>
-        <Image uri={product.image} />
+        <Image uri={product.image} fallback={productFallback} />
       </View>
 
       <View style={styles.info}>

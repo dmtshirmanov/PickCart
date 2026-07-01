@@ -6,8 +6,8 @@ import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { ProductItem } from '_features/catalogProduct/ui/ProductItem';
 import { productStore } from '_entities/product/model';
-import { ProductItem } from '_entities/product/ui/ProductItem';
 import { Product } from '_shared/api/product/types';
 import {
   ErrorPrimaryAction,
@@ -65,11 +65,12 @@ function ProductsScreenComponent() {
   return (
     <View style={styles.container}>
       {loading && products.length === 0 && !refreshing && (
-        <View style={styles.loaderContainer}>
+        <View style={styles.loaderContainer} testID="products-initial-loader">
           <Loader size={60} style={styles.loader} />
         </View>
       )}
       <FlashList
+        testID="products-list"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         style={styles.list}
         contentContainerStyle={styles.content}
@@ -82,7 +83,11 @@ function ProductsScreenComponent() {
         onEndReachedThreshold={0.5}
         ItemSeparatorComponent={renderSeparator}
         ListFooterComponent={
-          loading && products.length > 0 ? <Loader size={40} style={styles.loader} /> : undefined
+          loading && products.length > 0 ? (
+            <View testID="products-footer-loader">
+              <Loader size={40} style={styles.loader} />
+            </View>
+          ) : undefined
         }
       />
     </View>

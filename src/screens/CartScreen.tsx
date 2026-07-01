@@ -12,6 +12,7 @@ import { cartStore } from '_entities/cart/model';
 import { CartItem } from '_entities/cart/ui/CartItem';
 import { useReservationCountdown } from '_entities/order/lib/useReservationCountdown';
 import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { AnalyticsEvent } from '_shared/api/analytics/types';
 import { RootStackParamList, ScreenRoutes, type TabBarParamList } from '_shared/config/routing';
 import { Button, ButtonSize, ButtonVariant } from '_shared/ui/Button';
@@ -33,14 +34,9 @@ function CartScreenComponent() {
   const isFocused = useIsFocused();
   const { items, totalItems, totalPrice, canCheckout, remainingToMinOrder, highlightedProductIds } =
     cartStore;
-  const {
-    minOrderPriceNotice,
-    checkoutLoading,
-    hasReservation,
-    reservation,
-    checkoutIssues,
-    checkoutIssuesVisible,
-  } = orderStore;
+  const { minOrderPriceNotice, checkoutLoading, checkoutIssues, checkoutIssuesVisible } =
+    orderStore;
+  const { hasReservation, reservation } = reservationStore;
   const reservationCountdown = useReservationCountdown({ enabled: isFocused });
   const isEmpty = items.length === 0;
 
@@ -50,7 +46,7 @@ function CartScreenComponent() {
     .otherwise(() => 'Оформить заказ');
 
   const handleCheckout = useCallback(async () => {
-    if (orderStore.hasReservation) {
+    if (reservationStore.hasReservation) {
       navigation.navigate(ScreenRoutes.ORDER_CONFIRMATION);
       return;
     }
@@ -69,7 +65,7 @@ function CartScreenComponent() {
   }, []);
 
   const handleCancelReservation = useCallback(() => {
-    orderStore.releaseReservation();
+    reservationStore.releaseReservation();
   }, []);
 
   const handleCloseCheckoutIssues = useCallback(() => {

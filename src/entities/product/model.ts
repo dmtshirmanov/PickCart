@@ -49,9 +49,7 @@ class ProductStore {
 
   private syncStockFromCatalog(products: Array<Product>) {
     for (const product of products) {
-      if (!this.stockById.has(product.id)) {
-        this.setStock(product.id, product.stock);
-      }
+      this.setStock(product.id, product.stock);
     }
   }
 

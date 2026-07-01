@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { formatReservationCountdown } from './checkoutFormatting';
 
 interface Options {
@@ -13,7 +14,7 @@ export function useReservationCountdown({ enabled = true, onExpired }: Options =
   const onExpiredRef = useRef(onExpired);
   onExpiredRef.current = onExpired;
 
-  const { hasReservation, reservation } = orderStore;
+  const { hasReservation, reservation } = reservationStore;
 
   const countdown = useMemo(() => {
     if (!reservation) {

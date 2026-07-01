@@ -29,7 +29,7 @@ function AppComponent() {
   if (appInitStore.isLoading) {
     return (
       <SafeAreaProvider>
-        <View style={styles.centered}>
+        <View style={styles.centered} testID="app-loader">
           <Loader size={48} />
         </View>
       </SafeAreaProvider>

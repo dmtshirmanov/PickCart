@@ -2,17 +2,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { makePersistable } from 'mobx-persist-store';
-import { Alert } from 'react-native';
 import { analyticsStore } from '_entities/analytics/model';
 import { cartStore } from '_entities/cart/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
 import { AnalyticsEvent, type CheckoutStatePayload } from '_shared/api/analytics/types';
 import { checkoutService } from '_shared/api/checkout/service';
-import {
-  CHECKOUT_ISSUE_CODES,
-  type CheckoutIssue,
-  type CheckoutReservation,
-} from '_shared/api/checkout/types';
+import { CHECKOUT_ISSUE_CODES, type CheckoutIssue } from '_shared/api/checkout/types';
 import { OrderApiError } from '_shared/api/order/errors';
 import { orderService } from '_shared/api/order/service';
 import { Order } from '_shared/api/order/types';
@@ -35,7 +31,6 @@ class OrderStore {
   loading = false;
   checkoutLoading = false;
   minOrderPriceNotice?: string = undefined;
-  reservation?: CheckoutReservation = undefined;
   checkoutIssues: Array<CheckoutIssue> = [];
   checkoutIssuesVisible = false;
   options: Record<OrderOptionKey, boolean> = {
@@ -51,14 +46,10 @@ class OrderStore {
     makeAutoObservable(this);
     this.hydrationPromise = makePersistable(this, {
       name: 'OrderStore',
-      properties: ['options', 'reservation'],
+      properties: ['options'],
       storage: AsyncStorage,
     })
-      .then(() => {
-        runInAction(() => {
-          this.restorePersistedReservation();
-        });
-      })
+      .then(() => {})
       .catch(error => {
         console.error('[OrderStore] persistence failed', error);
       });
@@ -66,12 +57,6 @@ class OrderStore {
 
   async waitForHydration() {
     await this.hydrationPromise;
-  }
-
-  restorePersistedReservation() {
-    if (this.reservation && this.isReservationExpired) {
-      this.reservation = undefined;
-    }
   }
 
   async fetchMinOrderPrice() {
@@ -82,20 +67,8 @@ class OrderStore {
     });
   }
 
-  get hasReservation() {
-    return this.reservation !== undefined && !this.isReservationExpired;
-  }
-
-  get isReservationExpired() {
-    if (!this.reservation) {
-      return false;
-    }
-
-    return Date.now() >= this.reservation.expiresAt;
-  }
-
   async checkout() {
-    if (this.hasReservation) {
+    if (reservationStore.hasReservation) {
       return;
     }
 
@@ -120,7 +93,7 @@ class OrderStore {
         this.minOrderPrice = result.minOrderPrice;
 
         if (!result.success) {
-          this.reservation = undefined;
+          reservationStore.clearReservation();
           this.checkoutIssues = result.issues;
           this.checkoutIssuesVisible = true;
 
@@ -135,7 +108,10 @@ class OrderStore {
           return;
         }
 
-        this.reservation = result.reservation;
+        if (result.reservation) {
+          reservationStore.setReservation(result.reservation);
+        }
+
         this.checkoutIssues = [];
         this.checkoutIssuesVisible = false;
         this.minOrderPriceNotice = undefined;
@@ -153,70 +129,23 @@ class OrderStore {
     this.checkoutIssuesVisible = false;
   }
 
-  async releaseReservation() {
-    if (!this.reservation) {
-      return;
-    }
-
-    const reservationId = this.reservation.id;
-    await checkoutService.releaseReservation(reservationId);
-
-    runInAction(() => {
-      this.reservation = undefined;
-    });
-  }
-
-  async ensureCartEditable(): Promise<boolean> {
-    if (!this.hasReservation) {
-      return true;
-    }
-
-    return new Promise(resolve => {
-      Alert.alert('Отменить бронь?', 'Изменение корзины отменит бронирование товаров.', [
-        { text: 'Нет', style: 'cancel', onPress: () => resolve(false) },
-        {
-          text: 'Да',
-          onPress: () => {
-            this.releaseReservation().then(() => resolve(true));
-          },
-        },
-      ]);
-    });
-  }
-
-  async runCartMutation(action: () => void) {
-    const canEdit = await this.ensureCartEditable();
-
-    if (!canEdit) {
-      return;
-    }
-
-    action();
-  }
-
   async handleReservationExpired() {
-    if (!this.reservation) {
-      return;
-    }
-
-    await this.releaseReservation();
+    await reservationStore.handleReservationExpired();
 
     runInAction(() => {
       this.checkoutIssues = [];
       this.checkoutIssuesVisible = false;
     });
-
-    Alert.alert('Бронь истекла', 'Забронируйте товары заново из корзины.');
   }
 
   async confirmOrder(data: Omit<Order, 'id' | 'status'>) {
-    if (!this.reservation || this.isReservationExpired) {
+    if (!reservationStore.hasReservation || !reservationStore.reservation) {
       await this.handleReservationExpired();
       return { expired: true as const };
     }
 
     const checkoutSnapshot = this.checkoutSnapshot;
-    const reservationId = this.reservation.id;
+    const reservationId = reservationStore.reservation.id;
 
     analyticsStore.reportEvent(AnalyticsEvent.ORDER_SUBMITTED, checkoutSnapshot);
 
@@ -226,7 +155,7 @@ class OrderStore {
       cartStore.clear();
 
       runInAction(() => {
-        this.reservation = undefined;
+        reservationStore.clearReservation();
       });
 
       analyticsStore.reportEvent(AnalyticsEvent.ORDER_CONFIRMED, {

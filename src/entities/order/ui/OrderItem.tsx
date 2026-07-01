@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { Product } from '_shared/api/product/types';
+import productFallback from '_shared/assets/product-fallback.png';
 import { Image } from '_shared/ui/Image';
 import { formatPrice } from '_shared/utils/format';
 
@@ -14,7 +15,7 @@ export function OrderItem({ product, quantity }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.imageWrapper}>
-        <Image uri={product.image} />
+        <Image uri={product.image} fallback={productFallback} />
       </View>
 
       <View style={styles.info}>

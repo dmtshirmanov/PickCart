@@ -4,9 +4,10 @@ import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { cartStore } from '_entities/cart/model';
-import { orderStore } from '_entities/order/model';
+import { reservationStore } from '_entities/order/reservationModel';
 import { productStore } from '_entities/product/model';
 import { Product } from '_shared/api/product/types';
+import productFallback from '_shared/assets/product-fallback.png';
 import { Button } from '_shared/ui/Button';
 import { Image } from '_shared/ui/Image';
 import { QuantityStepper } from '_shared/ui/QuantityStepper';
@@ -24,7 +25,7 @@ function CartItemComponent({ product, quantity, highlighted = false }: Props) {
 
   const changeQuantity = useCallback(
     (value: number) => {
-      orderStore.runCartMutation(() => {
+      reservationStore.runCartMutation(() => {
         cartStore.changeQuantity(product, value);
       });
     },
@@ -32,7 +33,7 @@ function CartItemComponent({ product, quantity, highlighted = false }: Props) {
   );
 
   const remove = useCallback(() => {
-    orderStore.runCartMutation(() => {
+    reservationStore.runCartMutation(() => {
       cartStore.remove(product);
     });
   }, [product]);
@@ -40,7 +41,7 @@ function CartItemComponent({ product, quantity, highlighted = false }: Props) {
   return (
     <View style={[styles.container, highlighted && styles.containerHighlighted]}>
       <View style={styles.imageWrapper}>
-        <Image uri={product.image} />
+        <Image uri={product.image} fallback={productFallback} />
       </View>
 
       <View style={styles.content}>
